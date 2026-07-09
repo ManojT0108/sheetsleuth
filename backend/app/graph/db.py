@@ -22,5 +22,6 @@ def get_driver():
 
 
 def run(query: str, **params) -> list[dict]:
-    with get_driver().session() as session:
+    database = os.environ.get("NEO4J_DATABASE", "neo4j")
+    with get_driver().session(database=database) as session:
         return [dict(r) for r in session.run(query, **params)]
