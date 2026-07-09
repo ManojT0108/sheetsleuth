@@ -35,13 +35,20 @@ def upsert_workbook(row: dict):
         return r.json() if r.text else {}
 
 
-def llm(messages: list[dict], model: str = "claude-sonnet-5",
+def llm(messages: list[dict], model: str = "anthropic/claude-sonnet-4.6",
         max_tokens: int = 1200) -> str:
     """Call an LLM through the Butterbase AI gateway (OpenAI-compatible)."""
-    r = requests.post(
-        f"{BB_API}/v1/{APP_ID}/ai/chat/completions",
-        json={"model": model, "messages": messages, "max_tokens": max_tokens},
-        headers=_headers(), timeout=120,
-    )
-    r.raise_for_status()
-    return r.json()["choices"][0]["message"]["content"]
+    last_err = None
+    for attempt in range(3):
+        try:
+            r = requests.post(
+                f"{BB_API}/v1/{APP_ID}/chat/completions",
+                json={"model": model, "messages": messages,
+                      "max_tokens": max_tokens},
+                headers=_headers(), timeout=150,
+            )
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"]
+        except (requests.Timeout, requests.ConnectionError) as e:
+            last_err = e
+    raise last_err

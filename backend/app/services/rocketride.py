@@ -26,15 +26,6 @@ def ask_agent(wb: str, question: str) -> dict:
         resp.raise_for_status()
         return {"source": "rocketride-cloud", **resp.json()}
 
-    # Dev fallback: no LLM, just structured graph facts.
-    confirmed = [f for f in smells.get_findings(wb)
-                 if f["status"] == "CONFIRMED"]
-    return {
-        "source": "dev-fallback (RocketRide endpoint not configured)",
-        "question": question,
-        "answer": None,
-        "facts": {
-            "confirmedFindings": [f["summary"] for f in confirmed],
-            "criticalCells": q.critical_cells(wb, 5),
-        },
-    }
+    # Local agent path (same reasoning the RocketRide pipeline hosts in prod).
+    from ..audit.agent import answer
+    return {"question": question, **answer(wb, question)}
