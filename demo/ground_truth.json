@@ -1,0 +1,63 @@
+[
+  {
+    "id": "E1",
+    "type": "hardcoded-constant-in-chain",
+    "sheet": "Revenue",
+    "cells": [
+      "G3"
+    ],
+    "story": "A 15% growth rate typed into June's customer formula during a what-if session and never reverted; every month after June is inflated, propagating to MRR, ARR, marketing costs, and the board summary.",
+    "expected_fix": "Replace literal 0.15 with Assumptions!$B$3 (8%)."
+  },
+  {
+    "id": "E2",
+    "type": "stale-pasted-constant",
+    "sheet": "Revenue",
+    "cells": [
+      "K5"
+    ],
+    "story": "October MRR was overwritten with a pasted number (September's value) during board-deck prep; the formula never came back.",
+    "expected_fix": "Restore =J3*Assumptions!$B$5."
+  },
+  {
+    "id": "E3",
+    "type": "short-sum-range",
+    "sheet": "Costs",
+    "cells": [
+      "B8",
+      "C8",
+      "D8",
+      "E8",
+      "F8",
+      "G8",
+      "H8",
+      "I8",
+      "J8",
+      "K8",
+      "L8",
+      "M8"
+    ],
+    "story": "The contractors row was added after the totals row; SUM still ends at row 6, so $35,000 of spend is invisible to the total.",
+    "expected_fix": "Extend SUM(B3:B6) to SUM(B3:B7)."
+  },
+  {
+    "id": "E4",
+    "type": "off-by-one-reference",
+    "sheet": "Summary",
+    "cells": [
+      "B10"
+    ],
+    "story": "'Dec ARR' points at Revenue!L6 \u2014 November \u2014 a classic drag-fill off-by-one. The board sees the wrong exit run-rate.",
+    "expected_fix": "Point B10 at Revenue!M6."
+  },
+  {
+    "id": "E5",
+    "type": "orphaned-assumption",
+    "sheet": "Assumptions",
+    "cells": [
+      "B12"
+    ],
+    "story": "Support cost per customer exists as an assumption but feeds nothing; the founder believes support costs are modeled. They are not \u2014 costs are structurally understated.",
+    "expected_fix": "Wire B12 into the Costs sheet (customers x support cost)."
+  }
+]
