@@ -107,8 +107,23 @@ Deployed state (live right now):
 
 ## YOUR MISSION: tests
 
-No formal test suite exists yet (only the `demo/*.py` smoke scripts). Build
-`tests/` with pytest. Priorities, highest value first:
+**UPDATE:** a starter suite now exists — `tests/` (35 passing: units, extractor
+oracle, verify harness, Neo4j detector integration, API flow). Run it first:
+`.venv/bin/python -m pytest tests/ -q`. **Extend it — don't rewrite it.**
+Highest-value gaps remaining for you:
+
+- Edge-case workbooks (see item 4 below) — the suite only covers the demo
+  model + one synthetic circular workbook.
+- Adversarial formulas: array formulas, defined names, external links,
+  whole-row refs, merged cells — find where the extractor breaks and decide
+  crash vs. skip-gracefully.
+- The agent layer (`audit/agent.py`): semantic_audit false-positive rate on
+  clean workbooks; scenario-extraction robustness.
+- Concurrency: two uploads of the same file simultaneously.
+- Frontend smoke (optional): the API contract is covered; UI is being
+  redesigned by the other session, don't test its DOM yet.
+
+Original priority list (items 1–3 are now largely covered by the suite):
 
 1. **Pure-unit (no services needed) — do these first:**
    - `fixes.translate_formula`: drag-fill shifts relative refs only
