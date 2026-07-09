@@ -7,131 +7,291 @@
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 <style>
   :root{
-    --bg:#0b1220; --panel:#111a2e; --panel2:#182340; --line:#22304d;
-    --text:#e2e8f0; --dim:#8fa3c0; --accent:#5eead4; --blue:#60a5fa;
-    --amber:#fbbf24; --red:#f87171; --green:#34d399; --purple:#c4b5fd;
+    --bg:#0b0f17; --surface:#111726; --surface2:#151c2d; --line:rgba(255,255,255,.07);
+    --ink:#e6ebf4; --ink2:#9aa7bd; --ink3:#5c6a82;
+    --blue:#3b82f6; --amber:#d97706; --red:#ef4444; --green:#059669;
+    --t-amber:#fbbf24; --t-red:#f87171; --t-green:#34d399; --t-blue:#7ab3ff;
+    --accent:#2dd4bf; --accent-ink:#03201c;
+    --r:12px;
   }
-  *{box-sizing:border-box} body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
-  header{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
-  header h1{font-size:17px;margin:0;letter-spacing:.3px}
-  header h1 .tld{color:var(--accent)}
-  .tag{font-size:11px;color:var(--dim);border:1px solid var(--line);padding:2px 8px;border-radius:99px}
-  .spacer{flex:1}
-  button{background:var(--panel2,#182340);border:1px solid var(--line);color:var(--text);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px}
-  button:hover{border-color:var(--accent)}
-  button.primary{background:var(--accent);color:#04211c;border:none;font-weight:600}
-  button.buy{background:var(--amber);color:#271a02;border:none;font-weight:700}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .mono,code,td.num{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-variant-numeric:tabular-nums}
+  button{font:inherit;border:1px solid var(--line);background:var(--surface2);
+    color:var(--ink);padding:8px 16px;border-radius:9px;cursor:pointer;
+    transition:border-color .15s, background .15s}
+  button:hover{border-color:rgba(45,212,191,.5)}
+  button.primary{background:var(--accent);color:var(--accent-ink);border:none;font-weight:650}
+  button.primary:hover{filter:brightness(1.08)}
+  button.buy{background:var(--t-amber);color:#271a02;border:none;font-weight:700}
+  button.ghost{background:none;border-color:transparent;color:var(--ink2)}
   button:disabled{opacity:.45;cursor:default}
-  .chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
-  .chip.candidate{background:#3b2f10;color:var(--amber)}
-  .chip.CONFIRMED{background:#3d1414;color:var(--red)}
-  .chip.NO_IMPACT{background:#12303f;color:var(--blue)}
-  .chip.advisory{background:#241b40;color:var(--purple)}
-  nav{display:flex;gap:4px;padding:10px 20px 0}
-  nav button{border:none;background:none;color:var(--dim);padding:8px 16px;border-radius:8px 8px 0 0;font-size:13.5px}
-  nav button.active{color:var(--text);background:var(--panel);border:1px solid var(--line);border-bottom-color:var(--panel)}
-  main{padding:16px 20px}
+  input{font:inherit;color:var(--ink);background:var(--bg);
+    border:1px solid var(--line);border-radius:9px;padding:10px 13px}
+  input:focus{outline:none;border-color:rgba(45,212,191,.55)}
+
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;
+    padding:10px 22px;background:rgba(11,15,23,.82);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:750;font-size:15.5px;
+    letter-spacing:-.01em}
+  .brand .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#2dd4bf,#3b82f6);
+    display:grid;place-items:center;font-size:14px}
+  .wbchip{font-size:12px;color:var(--ink2);border:1px solid var(--line);
+    padding:3px 10px;border-radius:99px;max-width:280px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;display:none}
+  .spacer{flex:1}
+  .userchip{font-size:12px;color:var(--ink2);display:none}
+
+  /* ---------- hero ---------- */
+  #hero{max-width:880px;margin:0 auto;padding:9vh 24px 40px;text-align:center}
+  #hero h1{font-size:clamp(34px,6vw,58px);line-height:1.04;letter-spacing:-.03em;
+    margin:0 0 18px;font-weight:800}
+  #hero h1 em{font-style:normal;background:linear-gradient(90deg,#2dd4bf,#7ab3ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  #hero p.sub{font-size:17px;color:var(--ink2);max-width:640px;margin:0 auto 30px}
+  .cta{display:flex;gap:12px;justify-content:center;margin-bottom:52px}
+  .cta button{padding:13px 26px;font-size:15px;border-radius:11px}
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:left}
+  .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    padding:14px 16px}
+  .step b{display:block;font-size:13px;margin-bottom:3px}
+  .step span{font-size:12px;color:var(--ink3)}
+  .step .n{color:var(--accent);font-weight:700;margin-right:6px}
+  .stack{margin-top:44px;font-size:11.5px;color:var(--ink3);letter-spacing:.04em}
+  .stack b{color:var(--ink2);font-weight:600}
+
+  /* ---------- app ---------- */
+  #app{display:none;padding:14px 22px 30px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    padding:12px 16px}
+  .kpi .v{font-size:24px;font-weight:750;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em}
+  .kpi.risk .v{color:var(--t-red)}
+
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);
+    border-radius:11px;padding:3px;margin-bottom:14px}
+  .seg button{border:none;background:none;color:var(--ink2);padding:7px 18px;
+    border-radius:8px;font-weight:550}
+  .seg button.active{background:var(--surface2);color:var(--ink);
+    box-shadow:inset 0 0 0 1px var(--line)}
+
   .tab{display:none}.tab.active{display:block}
-  #net{height:calc(100vh - 210px);min-height:440px;border:1px solid var(--line);border-radius:12px;background:radial-gradient(1200px 500px at 30% -10%, #14203a 0%, var(--bg) 60%)}
-  .row{display:flex;gap:16px}
-  .side{width:330px;flex-shrink:0}
+  .row{display:flex;gap:14px;align-items:flex-start}
   .grow{flex:1;min-width:0}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
-  .card h3{margin:0 0 8px;font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px}
-  .kv{display:flex;justify-content:space-between;margin:3px 0;font-size:13px}
-  .kv .k{color:var(--dim)}
-  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
-  .finding{border-left:3px solid var(--amber);padding:12px 14px;margin-bottom:10px;background:var(--panel);border-radius:0 10px 10px 0}
+  .side{width:320px;flex-shrink:0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    padding:14px 16px;margin-bottom:12px}
+  .card h3{margin:0 0 10px;font-size:11.5px;color:var(--ink3);
+    text-transform:uppercase;letter-spacing:.08em;font-weight:650}
+  .kv{display:flex;justify-content:space-between;gap:10px;margin:4px 0;font-size:12.5px}
+  .kv .k{color:var(--ink3)}
+  code{font-size:12px;background:var(--bg);border:1px solid var(--line);
+    border-radius:6px;padding:2px 6px;word-break:break-all}
+
+  /* graph */
+  #net{height:calc(100vh - 300px);min-height:430px;border:1px solid var(--line);
+    border-radius:var(--r);
+    background:radial-gradient(900px 420px at 25% -8%, #131b30 0%, var(--bg) 62%)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink2);
+    margin:0 2px 8px;align-items:center}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;
+    vertical-align:-1px}
+  .legend .hint{margin-left:auto;color:var(--ink3)}
+
+  /* chips */
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:2.5px 10px;
+    border-radius:99px;font-size:11px;font-weight:650;letter-spacing:.02em}
+  .chip.candidate{background:rgba(217,119,6,.16);color:var(--t-amber)}
+  .chip.CONFIRMED{background:rgba(239,68,68,.15);color:var(--t-red)}
+  .chip.NO_IMPACT{background:rgba(59,130,246,.14);color:var(--t-blue)}
+  .chip.type{background:rgba(255,255,255,.05);color:var(--ink2);font-weight:550}
+
+  /* evidence */
+  .finding{background:var(--surface);border:1px solid var(--line);
+    border-left:3px solid var(--amber);border-radius:0 var(--r) var(--r) 0;
+    padding:15px 18px;margin-bottom:12px}
   .finding.CONFIRMED{border-left-color:var(--red)}
-  .finding h4{margin:0 0 4px;font-size:14px}
-  .finding .meta{color:var(--dim);font-size:12px;margin-bottom:8px}
-  table{width:100%;border-collapse:collapse;font-size:12.5px}
-  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
-  th{color:var(--dim);font-weight:500}
-  td.num{font-family:ui-monospace,Menlo,monospace;text-align:right}
-  .delta-neg{color:var(--red)} .delta-pos{color:var(--green)}
-  .locked{filter:blur(5px);pointer-events:none;user-select:none}
-  .paywall{position:relative}
-  .paywall .pay-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(11,18,32,.55);border-radius:10px;z-index:5}
-  #asklog{max-height:52vh;overflow:auto}
-  .msg{padding:10px 14px;border-radius:10px;margin-bottom:10px;max-width:85%}
-  .msg.q{background:#1c2a47;margin-left:auto}
-  .msg.a{background:var(--panel)}
-  .askbar{display:flex;gap:8px;margin-top:10px}
-  .askbar input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px 12px;font-size:14px}
-  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:26px;width:360px}
-  dialog::backdrop{background:rgba(0,0,0,.6)}
-  dialog input{width:100%;margin:6px 0;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px 12px}
-  .err{color:var(--red);font-size:12.5px;min-height:16px}
-  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:8px 2px}
-  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
-  .toast{position:fixed;bottom:20px;right:20px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:12px 18px;font-size:13px;z-index:99;display:none}
+  .finding.NO_IMPACT{border-left-color:var(--blue)}
+  .finding h4{margin:0;font-size:14.5px;font-weight:650;letter-spacing:-.005em;flex:1}
+  .fhead{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .meta{color:var(--ink3);font-size:12px;display:flex;gap:14px;align-items:center}
+  .sev{width:52px;height:4px;border-radius:2px;background:var(--surface2);
+    overflow:hidden;display:inline-block;vertical-align:middle}
+  .sev i{display:block;height:100%;background:var(--amber)}
+  .impact{margin:12px 0 4px;font-size:15px;font-weight:700}
+  .impact .delta{color:var(--t-red)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+  th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line)}
+  th{color:var(--ink3);font-weight:550;font-size:11px;text-transform:uppercase;
+    letter-spacing:.06em}
+  td.num{text-align:right}
+  .d-neg{color:var(--t-red)} .d-pos{color:var(--t-green)}
+  .runmeta{font-size:11.5px;color:var(--ink3);margin-top:7px}
+  .paywall{position:relative;margin-bottom:12px}
+  .paywall .inner{filter:blur(6px);pointer-events:none;user-select:none}
+  .pay-overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:12px;z-index:5;
+    background:linear-gradient(rgba(11,15,23,.35),rgba(11,15,23,.75));border-radius:var(--r)}
+  .pay-overlay b{font-size:14.5px}
+
+  /* ask */
+  .askwrap{max-width:840px;margin:0 auto}
+  #asklog{min-height:240px;max-height:56vh;overflow:auto;padding:4px 2px}
+  .msg{padding:12px 16px;border-radius:12px;margin-bottom:12px;max-width:88%;
+    font-size:13.5px}
+  .msg.q{background:#1b2946;margin-left:auto;border:1px solid rgba(59,130,246,.25)}
+  .msg.a{background:var(--surface);border:1px solid var(--line)}
+  .msg.a .src{font-size:11px;color:var(--ink3);margin-top:8px}
+  .msg h1,.msg h2,.msg h3{font-size:13.5px;margin:10px 0 4px}
+  .msg table{margin:8px 0}
+  .msg p{margin:6px 0}
+  .msg ul{margin:6px 0;padding-left:20px}
+  .sugs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .sugs button{font-size:12px;padding:6px 12px;border-radius:99px;color:var(--ink2)}
+  .askbar{display:flex;gap:9px;margin-top:8px}
+  .askbar input{flex:1}
+  .typing{color:var(--ink3);font-size:12.5px}
+  .typing::after{content:"…";animation:dots 1.2s infinite}
+  @keyframes dots{0%{content:"·"}33%{content:"··"}66%{content:"···"}}
+
+  /* dialog + toast + loader */
+  dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);
+    border-radius:16px;padding:28px;width:360px}
+  dialog::backdrop{background:rgba(4,7,12,.66)}
+  dialog h3{margin:0 0 14px;font-size:16px}
+  dialog input{width:100%;margin:5px 0}
+  .err{color:var(--t-red);font-size:12.5px;min-height:16px;margin-top:4px}
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--surface);
+    border:1px solid rgba(45,212,191,.4);border-radius:11px;padding:12px 18px;
+    font-size:13px;z-index:99;display:none;max-width:420px}
+  #loader{position:fixed;inset:0;display:none;place-items:center;z-index:50;
+    background:rgba(6,9,15,.7);backdrop-filter:blur(3px)}
+  #loader .box{background:var(--surface);border:1px solid var(--line);
+    border-radius:16px;padding:28px 36px;text-align:center;width:340px}
+  .spin{width:26px;height:26px;border:3px solid var(--surface2);
+    border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;
+    animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #loadstage{font-size:13px;color:var(--ink2)}
+
+  @media (max-width:960px){.row{flex-direction:column}.side{width:100%}
+    .kpis,.steps{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
+
 <header>
-  <h1>🕵️ SheetSleuth<span class="tld"> — your spreadsheet is lying to you</span></h1>
-  <span class="tag">Neo4j Aura</span><span class="tag">RocketRide Cloud</span>
-  <span class="tag">Daytona</span><span class="tag">Butterbase</span>
+  <div class="brand"><span class="logo">🕵️</span>SheetSleuth</div>
+  <span class="wbchip" id="wbchip"></span>
   <div class="spacer"></div>
-  <span id="who" class="tag" style="display:none"></span>
-  <button id="btn-demo" class="primary">▶ Audit the demo model</button>
-  <label><input type="file" id="file" accept=".xlsx" hidden><button onclick="document.getElementById('file').click()">Upload .xlsx</button></label>
-  <button id="btn-auth">Sign in</button>
+  <span class="userchip" id="who"></span>
+  <button class="ghost" id="btn-auth">Sign in</button>
+  <label><input type="file" id="file" accept=".xlsx" hidden>
+    <button onclick="document.getElementById('file').click()">Upload .xlsx</button></label>
+  <button class="primary" id="btn-demo">▶ Audit the demo model</button>
 </header>
 
-<nav>
-  <button data-tab="graph" class="active">🕸 Dependency Graph</button>
-  <button data-tab="evidence">🧾 Evidence</button>
-  <button data-tab="ask">💬 Ask the Agent</button>
-</nav>
+<!-- ================= HERO ================= -->
+<section id="hero">
+  <h1>Your spreadsheet is <em>lying to you.</em></h1>
+  <p class="sub">SheetSleuth turns every formula into a living dependency graph,
+    hunts down the errors hiding in the wiring — then <b>proves</b> each one by
+    re-executing your workbook in an isolated sandbox and measuring the damage
+    in dollars.</p>
+  <div class="cta">
+    <button class="primary" onclick="loadDemo()">▶ Audit the demo model</button>
+    <button onclick="document.getElementById('file').click()">Upload your .xlsx</button>
+  </div>
+  <div class="steps">
+    <div class="step"><b><span class="n">1</span>Parse</b>
+      <span>Every formula reference becomes an edge in a Neo4j graph</span></div>
+    <div class="step"><b><span class="n">2</span>Detect</b>
+      <span>Graph traversals + AI find hardcodes, short SUMs, off-by-ones</span></div>
+    <div class="step"><b><span class="n">3</span>Prove</b>
+      <span>A Daytona sandbox recomputes the whole workbook — verdicts, not vibes</span></div>
+    <div class="step"><b><span class="n">4</span>Ask</b>
+      <span>A cloud agent answers what-ifs by actually running them</span></div>
+  </div>
+  <div class="stack">POWERED BY&nbsp; <b>Neo4j Aura</b> · <b>RocketRide Cloud</b> ·
+    <b>Butterbase</b> · <b>Daytona</b> · <b>Cognee</b></div>
+</section>
 
-<main>
+<!-- ================= APP ================= -->
+<main id="app">
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="k-cells">–</div><div class="l">cells wired</div></div>
+    <div class="kpi"><div class="v" id="k-edges">–</div><div class="l">dependency edges</div></div>
+    <div class="kpi"><div class="v" id="k-findings" style="color:var(--t-amber)">–</div><div class="l">suspects found</div></div>
+    <div class="kpi risk"><div class="v" id="k-impact">–</div><div class="l">proven impact</div></div>
+  </div>
+
+  <div class="seg" id="tabs">
+    <button data-tab="graph" class="active">🕸 Graph</button>
+    <button data-tab="evidence">🧾 Evidence</button>
+    <button data-tab="ask">💬 Ask the agent</button>
+  </div>
+
   <div id="tab-graph" class="tab active">
+    <div class="legend">
+      <span><span class="dot" style="background:#3b82f6"></span>formula</span>
+      <span><span class="dot" style="background:#8b949e"></span>static value</span>
+      <span><span class="dot" style="background:#d97706"></span>suspect</span>
+      <span><span class="dot" style="background:#ef4444"></span>CONFIRMED error</span>
+      <button class="ghost" style="padding:2px 10px;font-size:12px" onclick="drawGraph()">↺ reset view</button>
+      <span class="hint">click = inspect · double-click = blast radius</span>
+    </div>
     <div class="row">
-      <div class="grow">
-        <div class="legend">
-          <span><span class="dot" style="background:#60a5fa"></span>formula</span>
-          <span><span class="dot" style="background:#64748b"></span>value</span>
-          <span><span class="dot" style="background:#fbbf24"></span>suspect finding</span>
-          <span><span class="dot" style="background:#f87171"></span>CONFIRMED error</span>
-          <span style="margin-left:auto">click a cell → inspect · double-click → blast radius</span>
-        </div>
-        <div id="net"></div>
-      </div>
+      <div class="grow"><div id="net"></div></div>
       <div class="side">
-        <div class="card"><h3>Workbook</h3><div id="wb-stats"><span style="color:var(--dim)">No workbook loaded — hit <b>Audit the demo model</b>.</span></div></div>
-        <div class="card"><h3>Cell inspector</h3><div id="inspector"><span style="color:var(--dim)">Click any node.</span></div></div>
+        <div class="card"><h3>Cell inspector</h3>
+          <div id="inspector"><span style="color:var(--ink3)">Click any node.</span></div></div>
         <div class="card"><h3>Most load-bearing cells</h3><div id="critical"></div></div>
       </div>
     </div>
   </div>
 
-  <div id="tab-evidence" class="tab">
-    <div id="findings"></div>
-  </div>
+  <div id="tab-evidence" class="tab"><div id="findings"></div></div>
 
   <div id="tab-ask" class="tab">
-    <div class="card" style="max-width:860px;margin:0 auto">
-      <div id="asklog"><div class="msg a">Ask me anything about this workbook. I answer by traversing the Neo4j graph and — for what-if questions — by <b>actually recomputing your model in a sandbox</b>. Try: <i>“What happens to runway if payroll rises 10%?”</i></div></div>
-      <div class="askbar"><input id="q" placeholder="Ask about errors, dependencies, or what-if scenarios…"><button class="primary" id="btn-ask">Ask</button></div>
+    <div class="askwrap">
+      <div class="card">
+        <div id="asklog">
+          <div class="msg a">Ask me anything about this workbook. Structural answers
+            come from <b>live Neo4j traversals</b>; what-if answers are
+            <b>actually executed in a Daytona sandbox</b> — never guessed.</div>
+        </div>
+        <div class="sugs" id="sugs"></div>
+        <div class="askbar">
+          <input id="q" placeholder="e.g. What happens to runway if payroll rises 10%?">
+          <button class="primary" id="btn-ask">Ask</button>
+        </div>
+      </div>
     </div>
   </div>
 </main>
 
 <dialog id="authdlg">
-  <h3 style="margin-top:0">Sign in to SheetSleuth</h3>
+  <h3>Sign in to SheetSleuth</h3>
   <input id="a-email" type="email" placeholder="email">
-  <input id="a-pass" type="password" placeholder="password (Aa1! + 8 chars for signup)">
+  <input id="a-pass" type="password" placeholder="password (Aa1! + 8 chars to sign up)">
   <div class="err" id="a-err"></div>
-  <div style="display:flex;gap:8px;margin-top:8px">
+  <div style="display:flex;gap:9px;margin-top:10px">
     <button class="primary" style="flex:1" onclick="auth('login')">Log in</button>
     <button style="flex:1" onclick="auth('signup')">Sign up</button>
   </div>
-  <div style="text-align:center;margin-top:10px"><button style="border:none;background:none;color:var(--dim)" onclick="authdlg.close()">cancel</button></div>
+  <div style="text-align:center;margin-top:8px">
+    <button class="ghost" onclick="authdlg.close()">cancel</button></div>
 </dialog>
 
 <div class="toast" id="toast"></div>
+<div id="loader"><div class="box"><div class="spin"></div><div id="loadstage">Parsing workbook…</div></div></div>
 
 <script>
 const BB_API = "https://api.butterbase.ai";
@@ -142,30 +302,67 @@ const BACKEND = localStorage.SS_BACKEND ||
     ? "https://agency-upgrade-thru-karen.trycloudflare.com"
     : "http://localhost:8788");
 
-let S = { wb:null, token:localStorage.SS_TOKEN||null, user:JSON.parse(localStorage.SS_USER||"null"),
-          unlocked:localStorage.SS_UNLOCKED==="1", net:null, nodes:null, edges:null, graph:null };
+let S = { wb:null, token:localStorage.SS_TOKEN||null,
+          user:JSON.parse(localStorage.SS_USER||"null"),
+          unlocked:localStorage.SS_UNLOCKED==="1",
+          net:null, nodes:null, edges:null };
 
 const $ = id => document.getElementById(id);
-const toast = m => { $("toast").textContent=m; $("toast").style.display="block";
-                     setTimeout(()=>$("toast").style.display="none", 4200); };
-const api = (p,opt={}) => fetch(BACKEND+p,opt).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+const api = (p,opt={}) => fetch(BACKEND+p,opt).then(r=>{
+  if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); });
+const toast = m => { $("toast").innerHTML=m; $("toast").style.display="block";
+  clearTimeout(toast._t); toast._t=setTimeout(()=>$("toast").style.display="none",4600); };
+const fmt$ = v => (v<0?"-$":"$")+Math.abs(Math.round(v)).toLocaleString();
+const fmtN = v => typeof v==="number"
+  ? v.toLocaleString(undefined,{maximumFractionDigits:1}) : v;
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* ---------- tiny markdown renderer (headers, bold, code, tables, lists) ---------- */
+function md(src){
+  const lines = esc(src).split("\n");
+  let html="", inTable=false, inList=false;
+  const flush=()=>{ if(inTable){html+="</table>";inTable=false}
+                    if(inList){html+="</ul>";inList=false} };
+  for(let ln of lines){
+    if(/^\s*\|.*\|\s*$/.test(ln)){
+      if(/^\s*\|[\s\-:|]+\|\s*$/.test(ln)) continue;        // separator row
+      const cells = ln.trim().replace(/^\||\|$/g,"").split("|").map(c=>c.trim());
+      if(!inTable){ flush(); html+="<table>"; inTable=true;
+        html+="<tr>"+cells.map(c=>"<th>"+inline(c)+"</th>").join("")+"</tr>"; }
+      else html+="<tr>"+cells.map(c=>{
+        const num=/^[-+]?[\d,.$%()]+$/.test(c.replace(/\*\*/g,""));
+        return `<td class="${num?'num':''}">`+inline(c)+"</td>";}).join("")+"</tr>";
+      continue; }
+    if(/^#{1,4}\s/.test(ln)){ flush(); html+="<h3>"+inline(ln.replace(/^#+\s*/,""))+"</h3>"; continue; }
+    if(/^\s*[-*]\s+/.test(ln)){ if(!inList){flush();html+="<ul>";inList=true}
+      html+="<li>"+inline(ln.replace(/^\s*[-*]\s+/,""))+"</li>"; continue; }
+    if(/^\s*(---|\*\*\*)\s*$/.test(ln)){ flush(); continue; }
+    if(ln.trim()===""){ flush(); continue; }
+    flush(); html+="<p>"+inline(ln)+"</p>";
+  }
+  flush(); return html;
+  function inline(s){ return s
+    .replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")
+    .replace(/`([^`]+)`/g,"<code>$1</code>"); }
+}
 
 /* ---------- tabs ---------- */
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
   b.classList.add("active"); $("tab-"+b.dataset.tab).classList.add("active");
 });
 
-/* ---------- auth (Butterbase) ---------- */
+/* ---------- auth ---------- */
 function refreshWho(){
   if(S.user){ $("who").textContent="👤 "+S.user.email; $("who").style.display="";
-              $("btn-auth").textContent="Sign out"; }
+    $("btn-auth").textContent="Sign out"; }
   else { $("who").style.display="none"; $("btn-auth").textContent="Sign in"; }
 }
 $("btn-auth").onclick = () => {
-  if(S.user){ S.user=null; S.token=null; localStorage.removeItem("SS_TOKEN");
-              localStorage.removeItem("SS_USER"); refreshWho(); toast("Signed out"); }
+  if(S.user){ S.user=null; S.token=null;
+    localStorage.removeItem("SS_TOKEN"); localStorage.removeItem("SS_USER");
+    refreshWho(); toast("Signed out"); }
   else authdlg.showModal();
 };
 async function auth(mode){
@@ -175,22 +372,21 @@ async function auth(mode){
     if(mode==="signup"){
       const r = await fetch(`${BB_API}/auth/${APP_ID}/signup`,{method:"POST",
         headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-      if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||"signup failed"); }
-    }
+      if(!r.ok){ const e=await r.json().catch(()=>({}));
+        throw new Error(e.message||e.error||"signup failed"); } }
     const r = await fetch(`${BB_API}/auth/${APP_ID}/login`,{method:"POST",
       headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||"login failed"); }
+    if(!r.ok){ const e=await r.json().catch(()=>({}));
+      throw new Error(e.message||e.error||"login failed"); }
     const d = await r.json();
     S.token=d.access_token; S.user=d.user;
     localStorage.SS_TOKEN=S.token; localStorage.SS_USER=JSON.stringify(S.user);
     authdlg.close(); refreshWho(); toast("Welcome, "+d.user.email);
-    api("/api/mirror/user",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({user_id:d.user.id})}).catch(()=>{});
   }catch(e){ $("a-err").textContent=e.message; }
 }
 refreshWho();
 
-/* ---------- payments (Butterbase Stripe Connect) ---------- */
+/* ---------- payments ---------- */
 async function buyReport(){
   if(!S.user){ authdlg.showModal(); return; }
   try{
@@ -200,158 +396,211 @@ async function buyReport(){
         successUrl:location.origin+location.pathname+"?paid=1",
         cancelUrl:location.href})});
     const d = await r.json();
-    if(d.url){ localStorage.SS_PENDING_ORDER=d.orderId||""; location.href=d.url; }
-    else throw new Error(d.message||"checkout unavailable");
-  }catch(e){ toast("Payment error: "+e.message); }
+    if(d.url) location.href=d.url;
+    else throw new Error(d.message||d.error||"checkout unavailable");
+  }catch(e){ toast("💳 Payment error: "+esc(e.message)); }
 }
 if(new URLSearchParams(location.search).get("paid")==="1"){
   localStorage.SS_UNLOCKED="1"; S.unlocked=true;
   history.replaceState({},"",location.pathname);
-  toast("✅ Full audit unlocked — thank you!");
+  setTimeout(()=>toast("✅ Full audit unlocked — thank you!"),400);
 }
 
+/* ---------- loading ---------- */
+const STAGES=["Parsing formulas…","Building the Neo4j dependency graph…",
+  "Running graph detectors…","LLM semantic triage via Butterbase…","Rendering…"];
+let stageT;
+function loaderOn(){ $("loader").style.display="grid"; let i=0;
+  $("loadstage").textContent=STAGES[0];
+  stageT=setInterval(()=>{ i=Math.min(i+1,STAGES.length-1);
+    $("loadstage").textContent=STAGES[i]; },1800); }
+function loaderOff(){ $("loader").style.display="none"; clearInterval(stageT); }
+
 /* ---------- workbook loading ---------- */
-$("btn-demo").onclick = () => loadWb(api("/api/demo",{method:"POST"}));
+function loadDemo(){ ingest(api("/api/demo",{method:"POST"})); }
+$("btn-demo").onclick = loadDemo;
 $("file").onchange = e => {
+  if(!e.target.files.length) return;
   const fd = new FormData(); fd.append("file", e.target.files[0]);
-  loadWb(api("/api/workbooks/upload",{method:"POST",body:fd}));
+  ingest(api("/api/workbooks/upload",{method:"POST",body:fd}));
 };
-async function loadWb(p){
-  toast("Parsing workbook → building Neo4j graph → running detectors…");
+async function ingest(promise){
+  loaderOn();
   try{
-    const d = await p; S.wb=d.workbook;
-    $("wb-stats").innerHTML =
-      `<div class="kv"><span class="k">name</span><span>${d.name}</span></div>
-       <div class="kv"><span class="k">cells</span><span>${d.cells}</span></div>
-       <div class="kv"><span class="k">dependency edges</span><span>${d.edges}</span></div>
-       <div class="kv"><span class="k">sheets</span><span>${d.sheets}</span></div>
-       <div class="kv"><span class="k">suspect findings</span><span style="color:var(--amber);font-weight:700">${d.findings}</span></div>`;
-    await drawGraph(); await renderFindings(); await renderCritical();
-    toast(`Graph ready: ${d.cells} cells, ${d.edges} edges, ${d.findings} suspects found`);
-  }catch(e){ toast("Load failed — is the backend running? "+e.message); }
+    const d = await promise;
+    S.wb = d.workbook;
+    $("hero").style.display="none"; $("app").style.display="block";
+    $("wbchip").textContent=d.name; $("wbchip").style.display="";
+    $("k-cells").textContent=d.cells.toLocaleString();
+    $("k-edges").textContent=d.edges.toLocaleString();
+    $("k-findings").textContent=d.findings;
+    await Promise.all([drawGraph(), renderFindings(), renderCritical()]);
+    toast(`🕵️ Audit complete: <b>${d.findings} suspects</b> in ${d.cells} cells`);
+  }catch(e){ toast("Load failed — is the backend running? "+esc(e.message)); }
+  loaderOff();
 }
 
 /* ---------- graph ---------- */
-const SHEET_HUE = {};
 async function drawGraph(){
-  const g = await api(`/api/workbooks/${S.wb}/graph`); S.graph=g;
+  const g = await api(`/api/workbooks/${S.wb}/graph`);
   const sheets=[...new Set(g.nodes.map(n=>n.cell.sheet))];
-  sheets.forEach((s,i)=>SHEET_HUE[s]=i);
   const nodes = g.nodes.map(n=>{
     const c=n.cell, f=n.finding;
-    let color="#64748b", size=9;
-    if(c.kind==="formula"){ color="#60a5fa"; size=11; }
-    if(c.kind==="text"){ color="#334155"; size=6; }
-    if(f){ color = f.status==="CONFIRMED" ? "#f87171" : "#fbbf24"; size=18; }
-    return { id:c.id, label:c.sheet+"!"+c.address, color:{background:color,border:"#0b1220"},
-             size, shape:"dot", font:{color:f?"#ffe9a8":"#8fa3c0",size:f?13:9},
-             x:(SHEET_HUE[c.sheet]%2)*900+(c.col*62), y:Math.floor(SHEET_HUE[c.sheet]/2)*760+(c.row*46),
-             fixed:false, _cell:c, _finding:f };
+    let color="#8b949e", size=8, font={color:"#5c6a82",size:9};
+    if(c.kind==="formula"){ color="#3b82f6"; size=10; }
+    if(c.kind==="text"){ color="#232c40"; size=5; }
+    if(f){ color = f.status==="CONFIRMED" ? "#ef4444" : "#d97706";
+           size=19; font={color:"#ffd9a8",size:13}; }
+    const si=sheets.indexOf(c.sheet);
+    return { id:c.id, label:c.sheet+"!"+c.address,
+      color:{background:color,border:"#0b0f17"}, size, shape:"dot", font,
+      x:(si%2)*920+(c.col*60), y:Math.floor(si/2)*740+(c.row*46),
+      title:c.formula||c.value||"", _cell:c, _finding:f };
   });
-  const edges = g.edges.map(e=>({from:e.src,to:e.dst,arrows:{to:{enabled:true,scaleFactor:.35}},
-    color:{color:"#31415f",opacity:.7},width:1,smooth:{type:"continuous"}}));
+  const edges = g.edges.map(e=>({from:e.src,to:e.dst,
+    arrows:{to:{enabled:true,scaleFactor:.3}},
+    color:{color:"#26314b",opacity:.75},width:1,smooth:{type:"continuous"}}));
   S.nodes=new vis.DataSet(nodes); S.edges=new vis.DataSet(edges);
   S.net = new vis.Network($("net"),{nodes:S.nodes,edges:S.edges},
-    {physics:{enabled:true,barnesHut:{gravitationalConstant:-2600,springLength:70,avoidOverlap:.4},stabilization:{iterations:120}},
-     interaction:{hover:true}});
+    {physics:{barnesHut:{gravitationalConstant:-2400,springLength:65,
+      avoidOverlap:.35},stabilization:{iterations:130}},
+     interaction:{hover:true,tooltipDelay:120}});
+  S.net.once("stabilizationIterationsDone",()=>S.net.fit({animation:true}));
   S.net.on("click", p=>{ if(p.nodes.length) inspect(p.nodes[0]); });
   S.net.on("doubleClick", p=>{ if(p.nodes.length) blast(p.nodes[0]); });
 }
 function inspect(id){
   const n=S.nodes.get(id), c=n._cell, f=n._finding;
   $("inspector").innerHTML =
-    `<div class="kv"><span class="k">cell</span><span class="mono">${c.sheet}!${c.address}</span></div>
-     ${c.formula?`<div class="kv"><span class="k">formula</span></div><code>${c.formula}</code>`:""}
-     ${c.value?`<div class="kv"><span class="k">value</span><span class="mono">${c.value}</span></div>`:""}
-     ${f?`<div style="margin-top:8px"><span class="chip ${f.status}">${f.status}</span> <span class="chip advisory">${f.type}</span></div>`:""}
-     <div style="margin-top:10px"><button onclick="blast('${id}')">💥 Show blast radius</button></div>`;
+    `<div class="kv"><span class="k">cell</span><span class="mono">${esc(c.sheet)}!${esc(c.address)}</span></div>
+     ${c.formula?`<div style="margin:7px 0"><code>${esc(c.formula)}</code></div>`:""}
+     ${c.value&&!c.formula?`<div class="kv"><span class="k">value</span><span class="mono">${esc(c.value)}</span></div>`:""}
+     ${f?`<div style="margin:9px 0 4px"><span class="chip ${f.status}">${f.status}</span>
+          <span class="chip type">${f.type}</span></div>`:""}
+     <div style="margin-top:10px"><button onclick="blast('${id}')">💥 Blast radius</button></div>`;
 }
 async function blast(id){
   const [sheet,address]=id.split("::")[1].split("!");
   const br = await api(`/api/workbooks/${S.wb}/blast/${sheet}/${address}`);
   const hit=new Set(br.cells.map(c=>c.cell));
   S.nodes.forEach(n=>{
-    if(n.id===id) S.nodes.update({id:n.id,color:{background:"#f87171"},size:20});
-    else if(hit.has(n.id)) S.nodes.update({id:n.id,color:{background:"#fb923c"},size:13});
-    else S.nodes.update({id:n.id,color:{background:"#233046"}});
+    if(n.id===id) S.nodes.update({id:n.id,color:{background:"#ef4444"},size:21});
+    else if(hit.has(n.id)) S.nodes.update({id:n.id,color:{background:"#f59e0b"},size:12});
+    else S.nodes.update({id:n.id,color:{background:"#1c2434"}});
   });
-  toast(`Blast radius: ${br.count} downstream cells across ${br.sheetsReached.join(", ")} (${br.maxHops} hops)`);
+  toast(`💥 Blast radius of <b>${sheet}!${address}</b>: ${br.count} downstream cells `+
+        `across ${br.sheetsReached.join(", ")} (${br.maxHops} hops deep)`);
 }
 async function renderCritical(){
   const rows = await api(`/api/workbooks/${S.wb}/critical`);
   $("critical").innerHTML = rows.slice(0,6).map(r=>
-    `<div class="kv"><span class="mono">${r.cell.split("::")[1]}</span><span>${r.reach} cells depend</span></div>`).join("");
+    `<div class="kv"><span class="mono">${esc(r.cell.split("::")[1])}</span>
+     <span style="color:var(--ink2)">${r.reach} cells depend</span></div>`).join("");
 }
 
 /* ---------- evidence ---------- */
 async function renderFindings(){
   const fs = await api(`/api/workbooks/${S.wb}/findings`);
+  // KPI: worst proven impact
+  let worst=0;
+  fs.forEach(f=>(f.runs||[]).forEach(r=>{ if(r.verdict==="CONFIRMED")
+    worst=Math.max(worst, r.maxAbsDelta||0); }));
+  $("k-impact").textContent = worst? fmt$(worst) : "–";
+
   const wrap=$("findings"); wrap.innerHTML="";
   fs.forEach((f,i)=>{
-    const locked = !S.unlocked && i>0;
-    const run=f.runs&&f.runs[0];
-    const div=document.createElement("div");
-    div.className="finding "+(f.status||"");
-    div.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px">
-        <h4 style="flex:1">${f.summary}</h4>
+    const run=(f.runs||[])[0];
+    const provable=["hardcoded-constant-in-chain","stale-pasted-constant",
+                    "short-sum-range"].includes(f.type);
+    const card=document.createElement("div");
+    card.className="finding "+(f.status||"");
+    card.innerHTML=`
+      <div class="fhead">
+        <h4>${esc(f.summary)}</h4>
         <span class="chip ${f.status}">${f.status}</span>
-        <span class="chip advisory">${f.type}</span>
-        ${["hardcoded-constant-in-chain","stale-pasted-constant","short-sum-range"].includes(f.type)
-          ? `<button onclick="verify('${f.id}',this)">🧪 Prove it in a sandbox</button>`
+        <span class="chip type">${f.type}</span>
+        ${provable
+          ? `<button onclick="verify('${f.id}',this)">${run?"↺ re-prove":"🧪 Prove it in a sandbox"}</button>`
           : `<button onclick="askAbout('${f.id}')">🤖 Ask the agent</button>`}
       </div>
-      <div class="meta">severity ${(f.severity*100|0)}% · cells: <span class="mono">${(f.cells||[]).slice(0,3).map(c=>c.split("::")[1]).join(", ")}${(f.cells||[]).length>3?"…":""}</span></div>
-      <div class="verdict" id="v-${CSS.escape(f.id)}">${run?verdictHtml(run):""}</div>`;
-    if(locked){
+      <div class="meta">
+        <span>severity <span class="sev"><i style="width:${(f.severity*100|0)}%"></i></span></span>
+        <span class="mono">${(f.cells||[]).slice(0,3).map(c=>c.split("::")[1]).join(" · ")}${(f.cells||[]).length>3?" …":""}</span>
+      </div>
+      <div class="verdict" id="v-${cssId(f.id)}">${run?verdictHtml(run):""}</div>`;
+    if(!S.unlocked && i>0){
       const pw=document.createElement("div"); pw.className="paywall";
-      div.classList.add("locked"); pw.appendChild(div);
-      pw.innerHTML += `<div class="pay-overlay"><b>🔒 ${fs.length-1} more findings verified &amp; waiting</b>
-        <button class="buy" onclick="buyReport()">Unlock full audit report — $9</button></div>`;
-      wrap.appendChild(pw);
-    } else wrap.appendChild(div);
+      const inner=document.createElement("div"); inner.className="inner";
+      inner.appendChild(card); pw.appendChild(inner);
+      const ov=document.createElement("div"); ov.className="pay-overlay";
+      ov.innerHTML=`<b>🔒 ${fs.length-1} more findings, verified &amp; waiting</b>
+        <button class="buy" onclick="buyReport()">Unlock full audit report — $9</button>`;
+      pw.appendChild(ov); wrap.appendChild(pw);
+    } else wrap.appendChild(card);
   });
-  if(!fs.length) wrap.innerHTML="<div class='card'>No findings — load a workbook first.</div>";
+  if(!fs.length) wrap.innerHTML=
+    "<div class='card'>No findings — load a workbook first.</div>";
 }
+const cssId = s => s.replace(/[^a-zA-Z0-9_-]/g,"_");
 function verdictHtml(r){
+  const top=(r.topDeltas||[])[0];
+  const head = top && top.delta!=null
+    ? `<div class="impact">📉 <span class="delta">${top.delta>0?"+":""}${fmt$(top.delta).replace("$-","-$")}</span>
+       &nbsp;<span style="color:var(--ink2);font-weight:500">${esc(top.label||top.cell)}</span></div>` : "";
   const rows=(r.topDeltas||[]).slice(0,5).map(d=>
-    `<tr><td class="mono">${d.cell}</td><td>${d.label||""}</td>
-     <td class="num">${fmt(d.before)}</td><td class="num">${fmt(d.after)}</td>
-     <td class="num ${d.delta<0?"delta-neg":"delta-pos"}">${d.delta!=null?(d.delta>0?"+":"")+fmt(d.delta):""}</td></tr>`).join("");
-  return `<div style="margin-top:8px"><span class="chip ${r.verdict}">${r.verdict}</span>
-    <span class="meta"> ${r.cellsChanged} cells change · executed via <b>${r.runner}</b> in ${r.seconds||"?"}s</span>
-    <table style="margin-top:6px"><tr><th>cell</th><th>label</th><th>as-is</th><th>fixed</th><th>Δ</th></tr>${rows}</table></div>`;
+    `<tr><td class="mono">${esc(d.cell)}</td><td>${esc(d.label||"")}</td>
+     <td class="num">${fmtN(d.before)}</td><td class="num">${fmtN(d.after)}</td>
+     <td class="num ${d.delta<0?"d-neg":"d-pos"}">${d.delta!=null?(d.delta>0?"▲ +":"▼ ")+fmtN(d.delta):""}</td></tr>`).join("");
+  return `${head}
+    <span class="chip ${r.verdict}">${r.verdict}</span>
+    <span class="runmeta">&nbsp;${r.cellsChanged} cells change · executed in a
+      <b>${esc(r.runner||"sandbox")}</b> sandbox${r.seconds?` · ${r.seconds}s`:""}</span>
+    <table><tr><th>cell</th><th>label</th><th>as-is</th><th>fixed</th><th>Δ</th></tr>${rows}</table>`;
 }
-const fmt = v => typeof v==="number" ? v.toLocaleString(undefined,{maximumFractionDigits:1}) : v;
 async function verify(fid,btn){
-  btn.disabled=true; btn.textContent="⏳ sandbox running…";
+  btn.disabled=true; const orig=btn.textContent; btn.textContent="⏳ sandbox running…";
   try{
     const r = await api(`/api/findings/${encodeURIComponent(fid)}/verify`,{method:"POST"});
-    document.getElementById("v-"+CSS.escape(fid)).innerHTML = verdictHtml(r);
-    btn.textContent="✅ proven"; await drawGraph(); renderFindings();
-  }catch(e){ btn.textContent="🧪 Prove it in a sandbox"; btn.disabled=false; toast("verify failed: "+e.message); }
+    toast(`🧪 Verdict: <b>${r.verdict}</b> — ${r.cellsChanged} cells change (via ${r.runner})`);
+    await renderFindings(); await drawGraph();
+  }catch(e){ btn.textContent=orig; btn.disabled=false;
+    toast("verify failed: "+esc(e.message)); }
 }
 function askAbout(fid){
   document.querySelector('[data-tab="ask"]').click();
-  $("q").value = `Explain finding ${fid.split("::")[1]} and what I should do about it.`;
+  $("q").value=`Explain finding ${fid.split("::")[1]} and what I should do about it.`;
+  $("q").focus();
 }
 
 /* ---------- ask ---------- */
-$("btn-ask").onclick=ask; $("q").addEventListener("keydown",e=>{if(e.key==="Enter")ask();});
+const SUGGESTIONS=[
+  "What happens to runway if payroll rises 10%?",
+  "Which Summary cells depend on Revenue!G3?",
+  "Which findings are CONFIRMED and what do they cost us?",
+];
+$("sugs").innerHTML = SUGGESTIONS.map(s=>
+  `<button onclick="$('q').value=this.textContent;ask()">${s}</button>`).join("");
+$("btn-ask").onclick=ask;
+$("q").addEventListener("keydown",e=>{if(e.key==="Enter")ask();});
 async function ask(){
-  const q=$("q").value.trim(); if(!q||!S.wb) { toast("Load a workbook first"); return; }
+  const q=$("q").value.trim();
+  if(!q) return; if(!S.wb){ toast("Load a workbook first"); return; }
   $("q").value="";
-  $("asklog").insertAdjacentHTML("beforeend",`<div class="msg q">${q}</div>`);
-  const hold=document.createElement("div"); hold.className="msg a"; hold.textContent="⏳ traversing graph…";
-  $("asklog").appendChild(hold); hold.scrollIntoView();
+  $("asklog").insertAdjacentHTML("beforeend",`<div class="msg q">${esc(q)}</div>`);
+  const hold=document.createElement("div"); hold.className="msg a";
+  hold.innerHTML=`<span class="typing">agent reasoning — graph traversal / sandbox run</span>`;
+  $("asklog").appendChild(hold); hold.scrollIntoView({behavior:"smooth"});
   try{
     const r = await api(`/api/workbooks/${S.wb}/ask`,{method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({question:q,user_id:S.user?.id||null})});
-    hold.innerHTML = (r.answer || JSON.stringify(r.facts,null,2)).replace(/\n/g,"<br>") +
-      `<div class="meta" style="margin-top:6px">via ${r.source}</div>`;
-  }catch(e){ hold.textContent="Agent error: "+e.message; }
-  hold.scrollIntoView();
+    const badge = r.source==="rocketride-cloud"
+      ? "☁️ RocketRide Cloud pipeline" : "🤖 "+esc(r.source||"agent");
+    const extra = r.executedVia ? ` · scenario executed via <b>${esc(r.executedVia)}</b>` : "";
+    hold.innerHTML = md(String(r.answer||"(no answer)")) +
+      `<div class="src">${badge}${extra}</div>`;
+  }catch(e){ hold.innerHTML=`<span style="color:var(--t-red)">Agent error: ${esc(e.message)}</span>`; }
+  hold.scrollIntoView({behavior:"smooth",block:"end"});
 }
 </script>
 </body>
