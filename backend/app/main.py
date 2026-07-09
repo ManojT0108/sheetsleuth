@@ -123,7 +123,26 @@ def verify(fid: str):
     proposal = fx.propose(finding)
     if proposal is None:
         raise HTTPException(422, "no deterministic fix; use the agent (/ask)")
-    return verify_finding(_wb_path(wb), finding, proposal)
+    result = verify_finding(_wb_path(wb), finding, proposal)
+
+    if result.get("verdict") == "CONFIRMED":
+        import threading
+
+        def _memorize():
+            try:
+                from .services.cognee_mem import remember_sync
+                top = (result.get("topDeltas") or [{}])[0]
+                remember_sync(
+                    f"Verified finding in workbook {wb}: {finding['summary']} "
+                    f"Verdict CONFIRMED by sandbox run ({result.get('runner')}), "
+                    f"{result.get('cellsChanged')} cells changed, top impact "
+                    f"{top.get('label')} {top.get('before')} -> {top.get('after')}."
+                )
+            except Exception:
+                pass
+
+        threading.Thread(target=_memorize, daemon=True).start()
+    return result
 
 
 @app.post("/api/workbooks/{wb}/ask")

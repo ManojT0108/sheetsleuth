@@ -163,6 +163,13 @@ def _extract_json(text: str, anchor: str | None = None) -> dict | None:
 
 def answer(wb: str, question: str) -> dict:
     facts = _graph_facts(wb)
+    try:  # Cognee long-term memory (best-effort)
+        from ..services.cognee_mem import recall_sync
+        memories = recall_sync(question)
+        if memories:
+            facts["agentMemories"] = memories
+    except Exception:
+        pass
     wave1 = llm([
         {"role": "system", "content":
             "You are SheetSleuth's audit agent. You answer questions about a "
