@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SheetSleuth — your spreadsheet is lying to you</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#111a2e; --panel2:#182340; --line:#22304d;
+    --text:#e2e8f0; --dim:#8fa3c0; --accent:#5eead4; --blue:#60a5fa;
+    --amber:#fbbf24; --red:#f87171; --green:#34d399; --purple:#c4b5fd;
+  }
+  *{box-sizing:border-box} body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+  header{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{font-size:17px;margin:0;letter-spacing:.3px}
+  header h1 .tld{color:var(--accent)}
+  .tag{font-size:11px;color:var(--dim);border:1px solid var(--line);padding:2px 8px;border-radius:99px}
+  .spacer{flex:1}
+  button{background:var(--panel2,#182340);border:1px solid var(--line);color:var(--text);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);color:#04211c;border:none;font-weight:600}
+  button.buy{background:var(--amber);color:#271a02;border:none;font-weight:700}
+  button:disabled{opacity:.45;cursor:default}
+  .chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
+  .chip.candidate{background:#3b2f10;color:var(--amber)}
+  .chip.CONFIRMED{background:#3d1414;color:var(--red)}
+  .chip.NO_IMPACT{background:#12303f;color:var(--blue)}
+  .chip.advisory{background:#241b40;color:var(--purple)}
+  nav{display:flex;gap:4px;padding:10px 20px 0}
+  nav button{border:none;background:none;color:var(--dim);padding:8px 16px;border-radius:8px 8px 0 0;font-size:13.5px}
+  nav button.active{color:var(--text);background:var(--panel);border:1px solid var(--line);border-bottom-color:var(--panel)}
+  main{padding:16px 20px}
+  .tab{display:none}.tab.active{display:block}
+  #net{height:calc(100vh - 210px);min-height:440px;border:1px solid var(--line);border-radius:12px;background:radial-gradient(1200px 500px at 30% -10%, #14203a 0%, var(--bg) 60%)}
+  .row{display:flex;gap:16px}
+  .side{width:330px;flex-shrink:0}
+  .grow{flex:1;min-width:0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+  .card h3{margin:0 0 8px;font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px}
+  .kv{display:flex;justify-content:space-between;margin:3px 0;font-size:13px}
+  .kv .k{color:var(--dim)}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .finding{border-left:3px solid var(--amber);padding:12px 14px;margin-bottom:10px;background:var(--panel);border-radius:0 10px 10px 0}
+  .finding.CONFIRMED{border-left-color:var(--red)}
+  .finding h4{margin:0 0 4px;font-size:14px}
+  .finding .meta{color:var(--dim);font-size:12px;margin-bottom:8px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:500}
+  td.num{font-family:ui-monospace,Menlo,monospace;text-align:right}
+  .delta-neg{color:var(--red)} .delta-pos{color:var(--green)}
+  .locked{filter:blur(5px);pointer-events:none;user-select:none}
+  .paywall{position:relative}
+  .paywall .pay-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(11,18,32,.55);border-radius:10px;z-index:5}
+  #asklog{max-height:52vh;overflow:auto}
+  .msg{padding:10px 14px;border-radius:10px;margin-bottom:10px;max-width:85%}
+  .msg.q{background:#1c2a47;margin-left:auto}
+  .msg.a{background:var(--panel)}
+  .askbar{display:flex;gap:8px;margin-top:10px}
+  .askbar input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px 12px;font-size:14px}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:26px;width:360px}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog input{width:100%;margin:6px 0;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px 12px}
+  .err{color:var(--red);font-size:12.5px;min-height:16px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:8px 2px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:12px 18px;font-size:13px;z-index:99;display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>🕵️ SheetSleuth<span class="tld"> — your spreadsheet is lying to you</span></h1>
+  <span class="tag">Neo4j Aura</span><span class="tag">RocketRide Cloud</span>
+  <span class="tag">Daytona</span><span class="tag">Butterbase</span>
+  <div class="spacer"></div>
+  <span id="who" class="tag" style="display:none"></span>
+  <button id="btn-demo" class="primary">▶ Audit the demo model</button>
+  <label><input type="file" id="file" accept=".xlsx" hidden><button onclick="document.getElementById('file').click()">Upload .xlsx</button></label>
+  <button id="btn-auth">Sign in</button>
+</header>
+
+<nav>
+  <button data-tab="graph" class="active">🕸 Dependency Graph</button>
+  <button data-tab="evidence">🧾 Evidence</button>
+  <button data-tab="ask">💬 Ask the Agent</button>
+</nav>
+
+<main>
+  <div id="tab-graph" class="tab active">
+    <div class="row">
+      <div class="grow">
+        <div class="legend">
+          <span><span class="dot" style="background:#60a5fa"></span>formula</span>
+          <span><span class="dot" style="background:#64748b"></span>value</span>
+          <span><span class="dot" style="background:#fbbf24"></span>suspect finding</span>
+          <span><span class="dot" style="background:#f87171"></span>CONFIRMED error</span>
+          <span style="margin-left:auto">click a cell → inspect · double-click → blast radius</span>
+        </div>
+        <div id="net"></div>
+      </div>
+      <div class="side">
+        <div class="card"><h3>Workbook</h3><div id="wb-stats"><span style="color:var(--dim)">No workbook loaded — hit <b>Audit the demo model</b>.</span></div></div>
+        <div class="card"><h3>Cell inspector</h3><div id="inspector"><span style="color:var(--dim)">Click any node.</span></div></div>
+        <div class="card"><h3>Most load-bearing cells</h3><div id="critical"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-evidence" class="tab">
+    <div id="findings"></div>
+  </div>
+
+  <div id="tab-ask" class="tab">
+    <div class="card" style="max-width:860px;margin:0 auto">
+      <div id="asklog"><div class="msg a">Ask me anything about this workbook. I answer by traversing the Neo4j graph and — for what-if questions — by <b>actually recomputing your model in a sandbox</b>. Try: <i>“What happens to runway if payroll rises 10%?”</i></div></div>
+      <div class="askbar"><input id="q" placeholder="Ask about errors, dependencies, or what-if scenarios…"><button class="primary" id="btn-ask">Ask</button></div>
+    </div>
+  </div>
+</main>
+
+<dialog id="authdlg">
+  <h3 style="margin-top:0">Sign in to SheetSleuth</h3>
+  <input id="a-email" type="email" placeholder="email">
+  <input id="a-pass" type="password" placeholder="password (Aa1! + 8 chars for signup)">
+  <div class="err" id="a-err"></div>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button class="primary" style="flex:1" onclick="auth('login')">Log in</button>
+    <button style="flex:1" onclick="auth('signup')">Sign up</button>
+  </div>
+  <div style="text-align:center;margin-top:10px"><button style="border:none;background:none;color:var(--dim)" onclick="authdlg.close()">cancel</button></div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BB_API = "https://api.butterbase.ai";
+const APP_ID = "app_x89ezf73vxrn";
+const PRODUCT_ID = "5d385dad-e200-4ca3-b897-67bc9967314e";
+const BACKEND = localStorage.SS_BACKEND || "http://localhost:8788";
+
+let S = { wb:null, token:localStorage.SS_TOKEN||null, user:JSON.parse(localStorage.SS_USER||"null"),
+          unlocked:localStorage.SS_UNLOCKED==="1", net:null, nodes:null, edges:null, graph:null };
+
+const $ = id => document.getElementById(id);
+const toast = m => { $("toast").textContent=m; $("toast").style.display="block";
+                     setTimeout(()=>$("toast").style.display="none", 4200); };
+const api = (p,opt={}) => fetch(BACKEND+p,opt).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); $("tab-"+b.dataset.tab).classList.add("active");
+});
+
+/* ---------- auth (Butterbase) ---------- */
+function refreshWho(){
+  if(S.user){ $("who").textContent="👤 "+S.user.email; $("who").style.display="";
+              $("btn-auth").textContent="Sign out"; }
+  else { $("who").style.display="none"; $("btn-auth").textContent="Sign in"; }
+}
+$("btn-auth").onclick = () => {
+  if(S.user){ S.user=null; S.token=null; localStorage.removeItem("SS_TOKEN");
+              localStorage.removeItem("SS_USER"); refreshWho(); toast("Signed out"); }
+  else authdlg.showModal();
+};
+async function auth(mode){
+  $("a-err").textContent="";
+  const body = { email:$("a-email").value.trim(), password:$("a-pass").value };
+  try{
+    if(mode==="signup"){
+      const r = await fetch(`${BB_API}/auth/${APP_ID}/signup`,{method:"POST",
+        headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||"signup failed"); }
+    }
+    const r = await fetch(`${BB_API}/auth/${APP_ID}/login`,{method:"POST",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||"login failed"); }
+    const d = await r.json();
+    S.token=d.access_token; S.user=d.user;
+    localStorage.SS_TOKEN=S.token; localStorage.SS_USER=JSON.stringify(S.user);
+    authdlg.close(); refreshWho(); toast("Welcome, "+d.user.email);
+    api("/api/mirror/user",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({user_id:d.user.id})}).catch(()=>{});
+  }catch(e){ $("a-err").textContent=e.message; }
+}
+refreshWho();
+
+/* ---------- payments (Butterbase Stripe Connect) ---------- */
+async function buyReport(){
+  if(!S.user){ authdlg.showModal(); return; }
+  try{
+    const r = await fetch(`${BB_API}/v1/${APP_ID}/billing/purchase`,{method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+S.token},
+      body:JSON.stringify({productId:PRODUCT_ID,
+        successUrl:location.origin+location.pathname+"?paid=1",
+        cancelUrl:location.href})});
+    const d = await r.json();
+    if(d.url){ localStorage.SS_PENDING_ORDER=d.orderId||""; location.href=d.url; }
+    else throw new Error(d.message||"checkout unavailable");
+  }catch(e){ toast("Payment error: "+e.message); }
+}
+if(new URLSearchParams(location.search).get("paid")==="1"){
+  localStorage.SS_UNLOCKED="1"; S.unlocked=true;
+  history.replaceState({},"",location.pathname);
+  toast("✅ Full audit unlocked — thank you!");
+}
+
+/* ---------- workbook loading ---------- */
+$("btn-demo").onclick = () => loadWb(api("/api/demo",{method:"POST"}));
+$("file").onchange = e => {
+  const fd = new FormData(); fd.append("file", e.target.files[0]);
+  loadWb(api("/api/workbooks/upload",{method:"POST",body:fd}));
+};
+async function loadWb(p){
+  toast("Parsing workbook → building Neo4j graph → running detectors…");
+  try{
+    const d = await p; S.wb=d.workbook;
+    $("wb-stats").innerHTML =
+      `<div class="kv"><span class="k">name</span><span>${d.name}</span></div>
+       <div class="kv"><span class="k">cells</span><span>${d.cells}</span></div>
+       <div class="kv"><span class="k">dependency edges</span><span>${d.edges}</span></div>
+       <div class="kv"><span class="k">sheets</span><span>${d.sheets}</span></div>
+       <div class="kv"><span class="k">suspect findings</span><span style="color:var(--amber);font-weight:700">${d.findings}</span></div>`;
+    await drawGraph(); await renderFindings(); await renderCritical();
+    toast(`Graph ready: ${d.cells} cells, ${d.edges} edges, ${d.findings} suspects found`);
+  }catch(e){ toast("Load failed — is the backend running? "+e.message); }
+}
+
+/* ---------- graph ---------- */
+const SHEET_HUE = {};
+async function drawGraph(){
+  const g = await api(`/api/workbooks/${S.wb}/graph`); S.graph=g;
+  const sheets=[...new Set(g.nodes.map(n=>n.cell.sheet))];
+  sheets.forEach((s,i)=>SHEET_HUE[s]=i);
+  const nodes = g.nodes.map(n=>{
+    const c=n.cell, f=n.finding;
+    let color="#64748b", size=9;
+    if(c.kind==="formula"){ color="#60a5fa"; size=11; }
+    if(c.kind==="text"){ color="#334155"; size=6; }
+    if(f){ color = f.status==="CONFIRMED" ? "#f87171" : "#fbbf24"; size=18; }
+    return { id:c.id, label:c.sheet+"!"+c.address, color:{background:color,border:"#0b1220"},
+             size, shape:"dot", font:{color:f?"#ffe9a8":"#8fa3c0",size:f?13:9},
+             x:(SHEET_HUE[c.sheet]%2)*900+(c.col*62), y:Math.floor(SHEET_HUE[c.sheet]/2)*760+(c.row*46),
+             fixed:false, _cell:c, _finding:f };
+  });
+  const edges = g.edges.map(e=>({from:e.src,to:e.dst,arrows:{to:{enabled:true,scaleFactor:.35}},
+    color:{color:"#31415f",opacity:.7},width:1,smooth:{type:"continuous"}}));
+  S.nodes=new vis.DataSet(nodes); S.edges=new vis.DataSet(edges);
+  S.net = new vis.Network($("net"),{nodes:S.nodes,edges:S.edges},
+    {physics:{enabled:true,barnesHut:{gravitationalConstant:-2600,springLength:70,avoidOverlap:.4},stabilization:{iterations:120}},
+     interaction:{hover:true}});
+  S.net.on("click", p=>{ if(p.nodes.length) inspect(p.nodes[0]); });
+  S.net.on("doubleClick", p=>{ if(p.nodes.length) blast(p.nodes[0]); });
+}
+function inspect(id){
+  const n=S.nodes.get(id), c=n._cell, f=n._finding;
+  $("inspector").innerHTML =
+    `<div class="kv"><span class="k">cell</span><span class="mono">${c.sheet}!${c.address}</span></div>
+     ${c.formula?`<div class="kv"><span class="k">formula</span></div><code>${c.formula}</code>`:""}
+     ${c.value?`<div class="kv"><span class="k">value</span><span class="mono">${c.value}</span></div>`:""}
+     ${f?`<div style="margin-top:8px"><span class="chip ${f.status}">${f.status}</span> <span class="chip advisory">${f.type}</span></div>`:""}
+     <div style="margin-top:10px"><button onclick="blast('${id}')">💥 Show blast radius</button></div>`;
+}
+async function blast(id){
+  const [sheet,address]=id.split("::")[1].split("!");
+  const br = await api(`/api/workbooks/${S.wb}/blast/${sheet}/${address}`);
+  const hit=new Set(br.cells.map(c=>c.cell));
+  S.nodes.forEach(n=>{
+    if(n.id===id) S.nodes.update({id:n.id,color:{background:"#f87171"},size:20});
+    else if(hit.has(n.id)) S.nodes.update({id:n.id,color:{background:"#fb923c"},size:13});
+    else S.nodes.update({id:n.id,color:{background:"#233046"}});
+  });
+  toast(`Blast radius: ${br.count} downstream cells across ${br.sheetsReached.join(", ")} (${br.maxHops} hops)`);
+}
+async function renderCritical(){
+  const rows = await api(`/api/workbooks/${S.wb}/critical`);
+  $("critical").innerHTML = rows.slice(0,6).map(r=>
+    `<div class="kv"><span class="mono">${r.cell.split("::")[1]}</span><span>${r.reach} cells depend</span></div>`).join("");
+}
+
+/* ---------- evidence ---------- */
+async function renderFindings(){
+  const fs = await api(`/api/workbooks/${S.wb}/findings`);
+  const wrap=$("findings"); wrap.innerHTML="";
+  fs.forEach((f,i)=>{
+    const locked = !S.unlocked && i>0;
+    const run=f.runs&&f.runs[0];
+    const div=document.createElement("div");
+    div.className="finding "+(f.status||"");
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px">
+        <h4 style="flex:1">${f.summary}</h4>
+        <span class="chip ${f.status}">${f.status}</span>
+        <span class="chip advisory">${f.type}</span>
+        ${["hardcoded-constant-in-chain","stale-pasted-constant","short-sum-range"].includes(f.type)
+          ? `<button onclick="verify('${f.id}',this)">🧪 Prove it in a sandbox</button>`
+          : `<button onclick="askAbout('${f.id}')">🤖 Ask the agent</button>`}
+      </div>
+      <div class="meta">severity ${(f.severity*100|0)}% · cells: <span class="mono">${(f.cells||[]).slice(0,3).map(c=>c.split("::")[1]).join(", ")}${(f.cells||[]).length>3?"…":""}</span></div>
+      <div class="verdict" id="v-${CSS.escape(f.id)}">${run?verdictHtml(run):""}</div>`;
+    if(locked){
+      const pw=document.createElement("div"); pw.className="paywall";
+      div.classList.add("locked"); pw.appendChild(div);
+      pw.innerHTML += `<div class="pay-overlay"><b>🔒 ${fs.length-1} more findings verified &amp; waiting</b>
+        <button class="buy" onclick="buyReport()">Unlock full audit report — $9</button></div>`;
+      wrap.appendChild(pw);
+    } else wrap.appendChild(div);
+  });
+  if(!fs.length) wrap.innerHTML="<div class='card'>No findings — load a workbook first.</div>";
+}
+function verdictHtml(r){
+  const rows=(r.topDeltas||[]).slice(0,5).map(d=>
+    `<tr><td class="mono">${d.cell}</td><td>${d.label||""}</td>
+     <td class="num">${fmt(d.before)}</td><td class="num">${fmt(d.after)}</td>
+     <td class="num ${d.delta<0?"delta-neg":"delta-pos"}">${d.delta!=null?(d.delta>0?"+":"")+fmt(d.delta):""}</td></tr>`).join("");
+  return `<div style="margin-top:8px"><span class="chip ${r.verdict}">${r.verdict}</span>
+    <span class="meta"> ${r.cellsChanged} cells change · executed via <b>${r.runner}</b> in ${r.seconds||"?"}s</span>
+    <table style="margin-top:6px"><tr><th>cell</th><th>label</th><th>as-is</th><th>fixed</th><th>Δ</th></tr>${rows}</table></div>`;
+}
+const fmt = v => typeof v==="number" ? v.toLocaleString(undefined,{maximumFractionDigits:1}) : v;
+async function verify(fid,btn){
+  btn.disabled=true; btn.textContent="⏳ sandbox running…";
+  try{
+    const r = await api(`/api/findings/${encodeURIComponent(fid)}/verify`,{method:"POST"});
+    document.getElementById("v-"+CSS.escape(fid)).innerHTML = verdictHtml(r);
+    btn.textContent="✅ proven"; await drawGraph(); renderFindings();
+  }catch(e){ btn.textContent="🧪 Prove it in a sandbox"; btn.disabled=false; toast("verify failed: "+e.message); }
+}
+function askAbout(fid){
+  document.querySelector('[data-tab="ask"]').click();
+  $("q").value = `Explain finding ${fid.split("::")[1]} and what I should do about it.`;
+}
+
+/* ---------- ask ---------- */
+$("btn-ask").onclick=ask; $("q").addEventListener("keydown",e=>{if(e.key==="Enter")ask();});
+async function ask(){
+  const q=$("q").value.trim(); if(!q||!S.wb) { toast("Load a workbook first"); return; }
+  $("q").value="";
+  $("asklog").insertAdjacentHTML("beforeend",`<div class="msg q">${q}</div>`);
+  const hold=document.createElement("div"); hold.className="msg a"; hold.textContent="⏳ traversing graph…";
+  $("asklog").appendChild(hold); hold.scrollIntoView();
+  try{
+    const r = await api(`/api/workbooks/${S.wb}/ask`,{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({question:q,user_id:S.user?.id||null})});
+    hold.innerHTML = (r.answer || JSON.stringify(r.facts,null,2)).replace(/\n/g,"<br>") +
+      `<div class="meta" style="margin-top:6px">via ${r.source}</div>`;
+  }catch(e){ hold.textContent="Agent error: "+e.message; }
+  hold.scrollIntoView();
+}
+</script>
+</body>
+</html>

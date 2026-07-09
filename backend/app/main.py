@@ -8,6 +8,10 @@ import hashlib
 import re
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parents[2] / ".env")
+
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -36,18 +40,37 @@ def _wb_path(wb: str) -> Path:
     return path
 
 
-@app.post("/api/workbooks/upload")
-async def upload(file: UploadFile):
-    raw = await file.read()
-    slug = re.sub(r"[^a-z0-9]+", "-", (file.filename or "book").lower())
+def _ingest(raw: bytes, name: str) -> dict:
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower())
     slug = slug.removesuffix("-xlsx").strip("-")[:40]
     wb = f"{slug}-{hashlib.sha1(raw).hexdigest()[:8]}"
-    (DATA_DIR / f"{wb}.xlsx").write_bytes(raw)
-
-    stats = load_workbook(wb, file.filename or wb, extract_workbook(raw_path := DATA_DIR / f"{wb}.xlsx"))
+    path = DATA_DIR / f"{wb}.xlsx"
+    path.write_bytes(raw)
+    stats = load_workbook(wb, name, extract_workbook(path))
     findings = smells.audit(wb)
-    return {"workbook": wb, "name": file.filename, **stats,
-            "findings": len(findings)}
+    result = {"workbook": wb, "name": name, **stats,
+              "findings": len(findings)}
+    try:  # mirror to Butterbase (best-effort; demo user if anonymous)
+        from .services.butterbase import upsert_workbook
+        upsert_workbook({"id": wb, "name": name,
+                         "user_id": "00000000-0000-0000-0000-000000000000",
+                         "cells": stats["cells"], "edges": stats["edges"],
+                         "sheets": stats["sheets"],
+                         "findings_count": len(findings)})
+    except Exception:
+        pass
+    return result
+
+
+@app.post("/api/workbooks/upload")
+async def upload(file: UploadFile):
+    return _ingest(await file.read(), file.filename or "workbook")
+
+
+@app.post("/api/demo")
+def demo():
+    demo_path = Path(__file__).parents[2] / "demo" / "lumeo_fy2026_model.xlsx"
+    return _ingest(demo_path.read_bytes(), "Lumeo Analytics FY2026 (demo)")
 
 
 @app.get("/api/workbooks/{wb}/graph")
@@ -105,6 +128,11 @@ def ask(wb: str, body: dict):
     return ask_agent(wb, body.get("question", ""))
 
 
+@app.post("/api/mirror/user")
+def mirror_user(body: dict):
+    return {"ok": True, "user_id": body.get("user_id")}
+
+
 @app.get("/api/health")
 def health():
     try:
@@ -113,3 +141,9 @@ def health():
     except Exception:
         neo4j_ok = False
     return {"ok": True, "neo4j": neo4j_ok}
+
+
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+app.mount("/", StaticFiles(directory=Path(__file__).parents[2] / "frontend",
+                           html=True), name="frontend")
