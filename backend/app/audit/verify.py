@@ -62,6 +62,11 @@ baseline = compute(src)
 sheets = {s.upper(): s for s in wb.sheetnames}
 for ref, formula in job["fixes"].items():
     sheet, addr = ref.split("!")
+    if isinstance(formula, str) and not formula.startswith("="):
+        try:
+            formula = float(formula) if "." in formula else int(formula)
+        except ValueError:
+            pass  # genuinely a text value
     wb[sheets[sheet.upper()]][addr] = formula
 fixed_path = "fixed.xlsx"
 wb.save(fixed_path)

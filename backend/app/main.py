@@ -5,6 +5,7 @@ per-finding sandbox verification -> agent Q&A (via RocketRide pipeline).
 """
 
 import hashlib
+import os
 import re
 from pathlib import Path
 
@@ -48,11 +49,12 @@ def _ingest(raw: bytes, name: str) -> dict:
     path.write_bytes(raw)
     stats = load_workbook(wb, name, extract_workbook(path))
     findings = smells.audit(wb)
-    try:  # LLM triage for semantic findings (label/reference mismatches)
-        from .audit.agent import semantic_audit
-        findings += semantic_audit(wb)
-    except Exception:
-        pass
+    if not os.environ.get("SHEETSLEUTH_SKIP_SEMANTIC"):
+        try:  # LLM triage for semantic findings (label/reference mismatches)
+            from .audit.agent import semantic_audit
+            findings += semantic_audit(wb)
+        except Exception:
+            pass
     result = {"workbook": wb, "name": name, **stats,
               "findings": len(findings)}
     try:  # mirror to Butterbase (best-effort; demo user if anonymous)

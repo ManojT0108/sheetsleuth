@@ -9,8 +9,9 @@ from openpyxl.utils import column_index_from_string, get_column_letter
 
 from ..graph.db import run
 
-# A1-style ref: optional $ on col/row; negative lookahead avoids LOG10( etc.
-REF_RE = re.compile(r"(\$?)([A-Z]{1,3})(\$?)(\d+)(?![A-Z0-9_(])")
+# A1-style ref: optional $ on col/row. Negative lookahead avoids function
+# names like LOG10( and sheet-name references like 'FY26'! or FY26!A1.
+REF_RE = re.compile(r"(\$?)([A-Z]{1,3})(\$?)(\d+)(?![A-Z0-9_('!])")
 
 
 def translate_formula(formula: str, col_delta: int, row_delta: int = 0) -> str:

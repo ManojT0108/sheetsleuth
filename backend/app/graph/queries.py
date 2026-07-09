@@ -112,7 +112,7 @@ def circular_references(wb: str) -> list[dict]:
 def blast_radius(cell_id: str) -> dict:
     rows = run(
         """
-        MATCH p = (c:Cell {id:$id})-[:FEEDS_INTO*1..]->(d:Cell)
+        MATCH p = (c:Cell {id:$id})-[:FEEDS_INTO*1..64]->(d:Cell)
         RETURN d.id AS cell, d.sheet AS sheet, min(length(p)) AS hops
         ORDER BY hops, cell
         """,
