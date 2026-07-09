@@ -137,7 +137,10 @@
 const BB_API = "https://api.butterbase.ai";
 const APP_ID = "app_x89ezf73vxrn";
 const PRODUCT_ID = "5d385dad-e200-4ca3-b897-67bc9967314e";
-const BACKEND = localStorage.SS_BACKEND || "http://localhost:8788";
+const BACKEND = localStorage.SS_BACKEND ||
+  (location.hostname.endsWith("butterbase.dev")
+    ? "https://agency-upgrade-thru-karen.trycloudflare.com"
+    : "http://localhost:8788");
 
 let S = { wb:null, token:localStorage.SS_TOKEN||null, user:JSON.parse(localStorage.SS_USER||"null"),
           unlocked:localStorage.SS_UNLOCKED==="1", net:null, nodes:null, edges:null, graph:null };
