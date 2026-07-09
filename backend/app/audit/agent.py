@@ -53,13 +53,18 @@ def _reference_contexts(wb: str) -> list[dict]:
 
 def semantic_audit(wb: str) -> list[dict]:
     """LLM triage of label-vs-reference semantics; writes findings to Neo4j."""
-    ctxs = [c for c in _reference_contexts(wb) if c["label"]]
+    structural = smells.get_findings(wb)
+    covered = {c for f in structural for c in (f.get("cells") or [])}
+    ctxs = [c for c in _reference_contexts(wb)
+            if c["label"] and c["cell"] not in covered]
     prompt = (
         "You audit spreadsheets. For each cell below, decide whether its "
         "references semantically match its label. Classic bug: a label names "
         "a period/scope (e.g. 'Dec ARR') but the reference points at a "
         "different one (e.g. November's column header). Only flag CLEAR "
-        "mismatches.\n\nCells:\n" + json.dumps(ctxs, default=str) +
+        "mismatches you are confident about; when in doubt, omit. Never "
+        "retract — simply leave uncertain cells out.\n\nCells:\n"
+        + json.dumps(ctxs, default=str) +
         '\n\nReply with JSON only: {"mismatches":[{"cell":"...","reason":"...",'
         '"suggestedRef":"Sheet!ADDR or null"}]}'
     )
@@ -71,8 +76,13 @@ def semantic_audit(wb: str) -> list[dict]:
         return []
 
     findings = []
-    existing = len(smells.get_findings(wb))
-    for i, m in enumerate(data.get("mismatches", []), 1):
+    existing = len(structural)
+    mismatches = [
+        m for m in data.get("mismatches", [])
+        if m.get("cell") and m["cell"] not in covered
+        and not re.search(r"retract|ignore this", m.get("reason", ""), re.I)
+    ]
+    for i, m in enumerate(mismatches, 1):
         f = {
             "id": f"{wb}::F{existing + i}-label-reference-mismatch",
             "workbook": wb,
