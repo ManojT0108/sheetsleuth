@@ -1,0 +1,78 @@
+{
+	"components": [
+		{
+			"id": "chat_1",
+			"provider": "chat",
+			"config": { "hideForm": true, "mode": "Source", "parameters": {}, "type": "chat" }
+		},
+		{
+			"id": "agent_1",
+			"provider": "agent_rocketride",
+			"config": {
+				"instructions": [
+					"You are SheetSleuth's audit agent. You answer questions about spreadsheets that have been parsed into a Neo4j dependency graph (Workbook -> Sheet -> Cell nodes, FEEDS_INTO edges between cells, Finding nodes with AFFECTS edges, Run nodes with VERIFIES edges recording sandbox-verified verdicts).",
+					"Tools available: (1) the Neo4j graph tool answers natural-language questions by generating Cypher and running it against the live graph; use it for structure, findings, verdicts, blast radius, and dependency questions. (2) the http tool calls the SheetSleuth backend: POST {SHEETSLEUTH_BACKEND}/api/workbooks/{workbook}/ask with JSON body {\"question\": ...} runs what-if scenarios by actually recomputing the workbook in an isolated Daytona sandbox - use it whenever the user asks a hypothetical (what happens if X changes).",
+					"Rules: never invent numbers. Structural facts come from the graph; hypothetical numbers must come from the sandbox what-if endpoint. Cite cells as Sheet!ADDRESS. Mention when a finding's verdict is CONFIRMED by an executed sandbox run and include its measured dollar impact. Be concise and concrete."
+				],
+				"max_waves": 6,
+				"parameters": {}
+			},
+			"input": [{ "lane": "questions", "from": "chat_1" }]
+		},
+		{
+			"id": "llm_1",
+			"provider": "llm_openai_api",
+			"config": {
+				"profile": "custom",
+				"custom": {
+					"model": "anthropic/claude-sonnet-4.6",
+					"base_url": "https://api.butterbase.ai/v1",
+					"apikey": "${ROCKETRIDE_BUTTERBASE_KEY}",
+					"modelTotalTokens": 200000
+				},
+				"parameters": {}
+			},
+			"control": [
+				{ "classType": "llm", "from": "agent_1" },
+				{ "classType": "llm", "from": "db_neo4j_1" }
+			]
+		},
+		{
+			"id": "memory_1",
+			"provider": "memory_internal",
+			"config": { "type": "memory_internal" },
+			"control": [{ "classType": "memory", "from": "agent_1" }]
+		},
+		{
+			"id": "db_neo4j_1",
+			"provider": "db_neo4j",
+			"config": {
+				"profile": "default",
+				"default": {
+					"uri": "${ROCKETRIDE_NEO4J_URI}",
+					"user": "${ROCKETRIDE_NEO4J_USER}",
+					"password": "${ROCKETRIDE_NEO4J_PASSWORD}",
+					"database": "${ROCKETRIDE_NEO4J_DATABASE}",
+					"db_description": "SheetSleuth spreadsheet dependency graph. Cell nodes (id like '<workbook>::<Sheet>!<ADDR>', properties sheet, address, row, col, kind=formula|number|text, formula, value, numValue) connected by FEEDS_INTO edges meaning the source cell's value flows into the target formula. Sheet-[:CONTAINS]->Cell, Workbook-[:HAS_SHEET]->Sheet. Finding nodes (type, status candidate|CONFIRMED|NO_IMPACT, summary, severity, cells) with AFFECTS edges to Cells. Run nodes (verdict, cellsChanged, maxAbsDelta, runner, topDeltas JSON) with VERIFIES edges to Findings. Blast radius = variable-length FEEDS_INTO traversal downstream of a cell."
+				},
+				"parameters": {}
+			},
+			"control": [{ "classType": "tool", "from": "agent_1" }]
+		},
+		{
+			"id": "tool_http_1",
+			"provider": "tool_http_request",
+			"config": { "type": "tool_http_request", "parameters": {} },
+			"control": [{ "classType": "tool", "from": "agent_1" }]
+		},
+		{
+			"id": "response_1",
+			"provider": "response_answers",
+			"config": { "laneName": "answers" },
+			"input": [{ "lane": "answers", "from": "agent_1" }]
+		}
+	],
+	"project_id": "0b0eade2-590a-4bec-985e-4256d3112922",
+	"viewport": { "x": 0, "y": 0, "zoom": 1 },
+	"version": 1
+}
