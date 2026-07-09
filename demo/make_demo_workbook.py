@@ -171,7 +171,7 @@ def build():
         5: ("Net income ($)", "=B3-B4", "$#,##0"),
         6: ("Ending cash ($)", "=Assumptions!B11+B5", "$#,##0"),
         7: ("Avg monthly burn ($)", "=(B4-B3)/12", "$#,##0"),
-        8: ("Runway (months)", "=IF(B5>0,999,Assumptions!B11/((B4-B3)/12))", "0.0"),
+        8: ("Runway (months)", '=IF(B5>0,"Profitable",Assumptions!B11/((B4-B3)/12))', "0.0"),
         10: ("Dec ARR — exit run-rate ($)", "=Revenue!L6", "$#,##0"),  # E4: L6 not M6
         11: ("Customers at exit", "=Revenue!M3", "0"),
     }
