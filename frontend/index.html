@@ -115,6 +115,11 @@
   .step .n{display:inline-grid;place-items:center;width:23px;height:23px;
     border-radius:7px;background:rgba(217,119,87,.16);color:var(--coral-deep);
     font-weight:750;font-size:12px;margin-right:8px}
+  .step .tech{margin-top:11px;display:inline-block;font-family:ui-monospace,Menlo,monospace;
+    font-size:11px;letter-spacing:.03em;padding:4px 11px;border-radius:99px;
+    background:rgba(37,99,235,.09);color:var(--t-blue);font-weight:600}
+  .basecamp{margin-top:13px;border-radius:var(--r);padding:14px 20px;
+    font-size:14px;color:var(--ink2);text-align:center}
 
   .stackrow{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
   .stackcard{border-radius:var(--r);padding:16px 18px;text-align:center}
@@ -289,8 +294,8 @@
 <header>
   <div class="brand"><span class="logo">🕵️</span>SheetSleuth</div>
   <nav class="anchors" id="anchors">
-    <a href="#pipeline">How it works</a><a href="#catches">What it catches</a>
-    <a href="#stack">Stack</a>
+    <a href="#see">Watch it work</a><a href="#catches">What it catches</a>
+    <a href="#how">The loop</a>
   </nav>
   <span class="wbchip" id="wbchip"></span>
   <div class="spacer"></div>
@@ -468,39 +473,29 @@ The founder thinks they're $82k short.
 <section class="land" id="how">
   <h2 class="sec">The loop, live</h2>
   <p class="seclead">Not a linter. A closed loop: extract → graph → detect →
-    <b>execute → measure</b> → remember.</p>
+    <b>execute → measure</b> → remember. Every stage is a different
+    load-bearing technology — remove one and the product stops working.</p>
   <div class="walk">
     <div class="step glass"><b><span class="n">1</span>Parse</b>
-      <span>Every formula reference becomes a FEEDS_INTO edge in a Neo4j Aura
-        property graph.</span></div>
+      <span>Every formula reference becomes a FEEDS_INTO edge in a live
+        property graph.</span>
+      <div class="tech">Neo4j Aura</div></div>
     <div class="step glass"><b><span class="n">2</span>Detect</b>
       <span>Cypher traversals find structural smells; an LLM triages the
-        semantic ones.</span></div>
+        semantic ones.</span>
+      <div class="tech">Cypher + Butterbase AI gateway</div></div>
     <div class="step glass"><b><span class="n">3</span>Prove</b>
-      <span>A fresh Daytona sandbox recomputes the entire workbook, as-is vs
-        fixed, and diffs every cell.</span></div>
+      <span>A fresh isolated sandbox recomputes the entire workbook, as-is vs
+        fixed, and diffs every cell.</span>
+      <div class="tech">Daytona</div></div>
     <div class="step glass"><b><span class="n">4</span>Ask</b>
-      <span>A RocketRide Cloud agent answers what-ifs by actually running them —
-        and remembers past audits with Cognee.</span></div>
+      <span>A cloud-deployed agent answers what-ifs by actually running them —
+        and remembers past audits.</span>
+      <div class="tech">RocketRide Cloud + Cognee</div></div>
   </div>
-</section>
-
-<section class="land" id="stack">
-  <h2 class="sec">Load-bearing stack</h2>
-  <p class="seclead">Remove any piece and the product stops working — that’s the
-    point.</p>
-  <div class="stackrow">
-    <div class="stackcard glass"><b>Neo4j Aura</b><span>the workbook as a
-      traversable graph</span></div>
-    <div class="stackcard glass"><b>RocketRide Cloud</b><span>the agent pipeline,
-      deployed &amp; managed</span></div>
-    <div class="stackcard glass"><b>Butterbase</b><span>auth · Postgres ·
-      payments · AI gateway · hosting</span></div>
-    <div class="stackcard glass"><b>Daytona</b><span>isolated sandboxes that
-      prove every verdict</span></div>
-    <div class="stackcard glass"><b>Cognee</b><span>long-term memory across
-      audits</span></div>
-  </div>
+  <div class="basecamp glass">🧈 All of it runs on <b>Butterbase</b> — auth,
+    Postgres, the $9 report checkout, the AI gateway behind every LLM call,
+    and the hosting serving this very page.</div>
 </section>
 
 <section id="closing">
