@@ -5,16 +5,18 @@ per-finding sandbox verification -> agent Q&A (via RocketRide pipeline).
 """
 
 import hashlib
+import logging
 import os
 import re
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parents[2] / ".env")
+load_dotenv(Path(__file__).parents[2] / ".env")  # before app imports read env
 
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .audit import fixes as fx
 from .audit import smells
@@ -24,8 +26,12 @@ from .graph.db import run as cypher
 from .graph.loader import load_workbook
 from .parser.extract import extract_workbook
 
+log = logging.getLogger("sheetsleuth")
+
 DATA_DIR = Path(__file__).parents[1] / "data"
 DATA_DIR.mkdir(exist_ok=True)
+FRONTEND_DIST = Path(__file__).parents[2] / "frontend" / "dist"
+DEMO_XLSX = Path(__file__).parents[2] / "demo" / "lumeo_fy2026_model.xlsx"
 
 app = FastAPI(title="SheetSleuth")
 app.add_middleware(
@@ -42,31 +48,43 @@ def _wb_path(wb: str) -> Path:
 
 
 def _ingest(raw: bytes, name: str) -> dict:
+    """Persist an uploaded workbook, build its graph, and run the audit."""
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower())
     slug = slug.removesuffix("-xlsx").strip("-")[:40]
     wb = f"{slug}-{hashlib.sha1(raw).hexdigest()[:8]}"
     path = DATA_DIR / f"{wb}.xlsx"
     path.write_bytes(raw)
+
     stats = load_workbook(wb, name, extract_workbook(path))
     findings = smells.audit(wb)
-    if not os.environ.get("SHEETSLEUTH_SKIP_SEMANTIC"):
-        try:  # LLM triage for semantic findings (label/reference mismatches)
-            from .audit.agent import semantic_audit
-            findings += semantic_audit(wb)
-        except Exception:
-            pass
-    result = {"workbook": wb, "name": name, **stats,
-              "findings": len(findings)}
-    try:  # mirror to Butterbase (best-effort; demo user if anonymous)
-        from .services.butterbase import upsert_workbook
-        upsert_workbook({"id": wb, "name": name,
-                         "user_id": "00000000-0000-0000-0000-000000000000",
+    findings += _semantic_findings(wb)
+    _mirror_workbook(wb, name, stats, len(findings))
+    return {"workbook": wb, "name": name, **stats, "findings": len(findings)}
+
+
+def _semantic_findings(wb: str) -> list:
+    """LLM triage for label/reference mismatches. Best-effort: an LLM or
+    gateway outage degrades the audit to structural-only, never fails it."""
+    if os.environ.get("SHEETSLEUTH_SKIP_SEMANTIC"):
+        return []
+    try:
+        from .audit.agent import semantic_audit
+        return semantic_audit(wb)
+    except Exception:
+        log.warning("semantic audit skipped", exc_info=True)
+        return []
+
+
+def _mirror_workbook(wb: str, name: str, stats: dict, n_findings: int):
+    """Best-effort mirror into the Butterbase Postgres workbooks table."""
+    try:
+        from .services.butterbase import ANON_USER, upsert_workbook
+        upsert_workbook({"id": wb, "name": name, "user_id": ANON_USER,
                          "cells": stats["cells"], "edges": stats["edges"],
                          "sheets": stats["sheets"],
-                         "findings_count": len(findings)})
+                         "findings_count": n_findings})
     except Exception:
-        pass
-    return result
+        log.warning("butterbase workbook mirror failed", exc_info=True)
 
 
 @app.post("/api/workbooks/upload")
@@ -76,8 +94,7 @@ async def upload(file: UploadFile):
 
 @app.post("/api/demo")
 def demo():
-    demo_path = Path(__file__).parents[2] / "demo" / "lumeo_fy2026_model.xlsx"
-    return _ingest(demo_path.read_bytes(), "Lumeo Analytics FY2026 (demo)")
+    return _ingest(DEMO_XLSX.read_bytes(), "Lumeo Analytics FY2026 (demo)")
 
 
 @app.get("/api/workbooks/{wb}/graph")
@@ -125,25 +142,11 @@ def verify(fid: str):
     proposal = fx.propose(finding)
     if proposal is None:
         raise HTTPException(422, "no deterministic fix; use the agent (/ask)")
+
     result = verify_finding(_wb_path(wb), finding, proposal)
-
     if result.get("verdict") == "CONFIRMED":
-        import threading
-
-        def _memorize():
-            try:
-                from .services.cognee_mem import remember_sync
-                top = (result.get("topDeltas") or [{}])[0]
-                remember_sync(
-                    f"Verified finding in workbook {wb}: {finding['summary']} "
-                    f"Verdict CONFIRMED by sandbox run ({result.get('runner')}), "
-                    f"{result.get('cellsChanged')} cells changed, top impact "
-                    f"{top.get('label')} {top.get('before')} -> {top.get('after')}."
-                )
-            except Exception:
-                pass
-
-        threading.Thread(target=_memorize, daemon=True).start()
+        from .services.cognee_mem import remember_verdict_async
+        remember_verdict_async(wb, finding, result)
     return result
 
 
@@ -152,11 +155,6 @@ def ask(wb: str, body: dict):
     """Agent Q&A — routed through the RocketRide Cloud pipeline."""
     from .services.rocketride import ask_agent
     return ask_agent(wb, body.get("question", ""))
-
-
-@app.post("/api/mirror/user")
-def mirror_user(body: dict):
-    return {"ok": True, "user_id": body.get("user_id")}
 
 
 @app.get("/api/health")
@@ -169,7 +167,5 @@ def health():
     return {"ok": True, "neo4j": neo4j_ok}
 
 
-from fastapi.staticfiles import StaticFiles  # noqa: E402
-
-app.mount("/", StaticFiles(directory=Path(__file__).parents[2] / "frontend" / "dist",
-                           html=True), name="frontend")
+app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True),
+          name="frontend")

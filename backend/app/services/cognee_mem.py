@@ -70,6 +70,28 @@ async def recall(query: str) -> list[str]:
         return []
 
 
+def remember_verdict_async(wb: str, finding: dict, result: dict):
+    """Fire-and-forget: record a CONFIRMED verdict in long-term memory
+    without blocking the API response."""
+    import logging
+    import threading
+
+    def _memorize():
+        try:
+            top = (result.get("topDeltas") or [{}])[0]
+            remember_sync(
+                f"Verified finding in workbook {wb}: {finding['summary']} "
+                f"Verdict CONFIRMED by sandbox run ({result.get('runner')}), "
+                f"{result.get('cellsChanged')} cells changed, top impact "
+                f"{top.get('label')} {top.get('before')} -> {top.get('after')}."
+            )
+        except Exception:
+            logging.getLogger("sheetsleuth").warning(
+                "cognee memorization failed", exc_info=True)
+
+    threading.Thread(target=_memorize, daemon=True).start()
+
+
 def remember_sync(text: str):
     try:
         asyncio.run(remember(text))

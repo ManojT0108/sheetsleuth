@@ -29,6 +29,7 @@ async def _ask_cloud(wb: str, question: str) -> dict:
     try:
         # reuse the already-running deployed pipeline; deploy if absent
         token = await client.get_task_token(_pipe_project_id(), "chat_1")
+        attached = token is not None
         if not token:
             result = await client.use(filepath=str(PIPE_PATH))
             token = result["token"]
@@ -40,8 +41,8 @@ async def _ask_cloud(wb: str, question: str) -> dict:
         return {
             "answer": answers[0] if answers else str(resp),
             "source": "rocketride-cloud",
-            "pipeline": "sheetsleuth_agent.pipe (attached)" if token else
-                        "sheetsleuth_agent.pipe (deployed)",
+            "pipeline": "sheetsleuth_agent.pipe "
+                        + ("(attached)" if attached else "(deployed)"),
         }
     finally:
         await client.disconnect()
@@ -66,14 +67,17 @@ def ask_agent(wb: str, question: str) -> dict:
 
 
 def _mirror_ask(wb: str, question: str, result: dict):
+    """Best-effort mirror into the Butterbase ask_history table."""
     try:
-        from .butterbase import insert
+        from .butterbase import ANON_USER, insert
         insert("ask_history", {
-            "user_id": "00000000-0000-0000-0000-000000000000",
+            "user_id": ANON_USER,
             "workbook_id": wb,
             "question": question,
             "answer": str(result.get("answer"))[:8000],
             "pipeline": result.get("source"),
         })
     except Exception:
-        pass
+        import logging
+        logging.getLogger("sheetsleuth").warning(
+            "ask_history mirror failed", exc_info=True)
