@@ -171,5 +171,5 @@ def health():
 
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
-app.mount("/", StaticFiles(directory=Path(__file__).parents[2] / "frontend",
+app.mount("/", StaticFiles(directory=Path(__file__).parents[2] / "frontend" / "dist",
                            html=True), name="frontend")
