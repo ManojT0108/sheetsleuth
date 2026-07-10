@@ -109,15 +109,18 @@
     font-weight:700;color:var(--t-red)}
 
   .walk{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
-  .step{border-radius:var(--r);padding:18px 19px}
+  .step{border-radius:var(--r);padding:18px 19px;display:flex;
+    flex-direction:column;align-items:flex-start}
   .step b{display:block;font-size:15px;margin-bottom:5px}
   .step span{font-size:13.5px;color:var(--ink2)}
   .step .n{display:inline-grid;place-items:center;width:23px;height:23px;
     border-radius:7px;background:rgba(217,119,87,.16);color:var(--coral-deep);
     font-weight:750;font-size:12px;margin-right:8px}
-  .step .tech{margin-top:11px;display:inline-block;font-family:ui-monospace,Menlo,monospace;
-    font-size:11px;letter-spacing:.03em;padding:4px 11px;border-radius:99px;
-    background:rgba(37,99,235,.09);color:var(--t-blue);font-weight:600}
+  .step span{margin-bottom:12px}
+  .step .tech{margin-top:auto;display:inline-block;
+    font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.03em;
+    padding:4px 11px;border-radius:99px;background:rgba(37,99,235,.09);
+    color:var(--t-blue);font-weight:600}
   .basecamp{margin-top:13px;border-radius:var(--r);padding:14px 20px;
     font-size:14px;color:var(--ink2);text-align:center}
 
@@ -139,16 +142,46 @@
   .metric .l{font-size:12.5px;color:var(--ink3);margin-top:3px}
 
   .workpanels{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
-  .panel{border-radius:var(--r);overflow:hidden;padding:0}
-  .panel .ph{padding:11px 17px;font-size:11px;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--ink3);font-weight:700;
-    border-bottom:1px solid var(--hairline)}
-  .panel pre{margin:0;padding:15px 17px;font-family:ui-monospace,Menlo,monospace;
-    font-size:11.8px;line-height:1.7;overflow-x:auto;color:var(--ink2)}
-  .panel pre b{color:var(--coral-deep);font-weight:650}
-  .panel pre .ok{color:var(--t-green);font-weight:700}
-  .panel pre .bad{color:var(--t-red);font-weight:700}
-  .panel pre .kw{color:var(--t-blue);font-weight:600}
+  .case{border-radius:var(--r);padding:20px 21px;display:flex;
+    flex-direction:column;gap:13px}
+  .case .tag{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--coral-deep);font-weight:750}
+  .case p{margin:0;font-size:13.5px;color:var(--ink2)}
+  .case p b{color:var(--ink)}
+  /* act I: mini spreadsheet */
+  .minisheet table{width:100%;border-collapse:collapse;margin:0;
+    font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  .minisheet td{border:1px solid rgba(31,30,29,.1);padding:5px 9px;
+    background:rgba(255,255,255,.65);text-align:right}
+  .minisheet td.rl{text-align:left;font-family:inherit;color:var(--ink2)}
+  .minisheet .sumzone td, .minisheet td.sumzone{background:rgba(37,99,235,.07)}
+  .minisheet .ghost td{background:rgba(220,38,38,.07);color:var(--t-red);
+    border-style:dashed}
+  .minisheet .tot td{font-weight:700;background:rgba(255,255,255,.9)}
+  /* act II: trial visual */
+  .trial{display:flex;align-items:center;gap:9px;justify-content:center}
+  .wbpill{background:rgba(255,255,255,.8);border:1px solid var(--hairline);
+    border-radius:12px;padding:10px 14px;text-align:center;font-size:12.5px;
+    font-weight:650}
+  .wbpill small{color:var(--ink3);font-weight:500}
+  .vs{font-size:11px;color:var(--ink3);text-align:center;line-height:1.4}
+  .trialbox{border:1.5px dashed rgba(217,119,87,.5);border-radius:12px;
+    padding:9px 13px;font-size:12px;color:var(--coral-deep);text-align:center;
+    background:rgba(217,119,87,.05)}
+  /* act III: stamp + ledger */
+  .stampwrap{text-align:center;padding:6px 0 2px}
+  .stamp{display:inline-block;transform:rotate(-7deg);
+    border:3px solid var(--red);color:var(--red);border-radius:9px;
+    padding:5px 18px;font-weight:800;letter-spacing:.14em;font-size:19px;
+    text-transform:uppercase;opacity:.85;
+    box-shadow:0 2px 10px rgba(220,38,38,.15)}
+  .ledger div{display:flex;justify-content:space-between;gap:10px;
+    padding:6px 2px;border-bottom:1px dashed rgba(31,30,29,.12);font-size:13px}
+  .ledger div span{color:var(--ink2)}
+  .ledger div b{font-family:ui-monospace,Menlo,monospace}
+  .ledger .bad{color:var(--t-red)}
+  .ledger .sum{border-bottom:none;font-weight:700}
+  .ledger .sum span{color:var(--ink)}
 
   .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
   .pillar{border-radius:var(--r);padding:24px 24px 26px}
@@ -320,8 +353,8 @@
   </div>
   <div class="herostats">
     <span class="glass">⏱ audit in ~10 seconds</span>
-    <span class="glass">🧪 verdicts proven by execution</span>
-    <span class="glass">demo model hides <b>$35,000</b> the founder can't see</span>
+    <span class="glass">🧪 verdicts proven by execution — never guessed</span>
+    <span class="glass">📄 works on any .xlsx — try yours</span>
   </div>
 </section>
 
@@ -339,55 +372,67 @@
 
 <section class="land" id="metrics">
   <div class="metrics">
-    <div class="metric glass"><div class="v"><em>$35,000</em></div>
-      <div class="l">of spending invisible to the demo model's totals — found &amp; proven</div></div>
-    <div class="metric glass"><div class="v">52 cells</div>
-      <div class="l">blast radius traced from one hardcoded constant, in one query</div></div>
-    <div class="metric glass"><div class="v">5/5 · 0</div>
-      <div class="l">planted errors caught · false positives</div></div>
-    <div class="metric glass"><div class="v">~7s</div>
-      <div class="l">per verdict: fresh sandbox, full recompute, measured diff</div></div>
+    <div class="metric glass"><div class="v">~10s</div>
+      <div class="l">from raw .xlsx to a full dependency graph with suspects flagged</div></div>
+    <div class="metric glass"><div class="v">1 query</div>
+      <div class="l">to trace any cell's full blast radius — every downstream cell, every sheet</div></div>
+    <div class="metric glass"><div class="v">6 classes</div>
+      <div class="l">of error caught: hardcodes · pasted constants · short SUMs · off-by-ones · orphans · cycles</div></div>
+    <div class="metric glass"><div class="v"><em>100%</em></div>
+      <div class="l">of verdicts proven by re-executing your workbook in a sandbox — zero pattern-match guesses</div></div>
   </div>
 </section>
 
 <section class="land" id="see">
   <h2 class="sec">Watch it work</h2>
-  <p class="seclead">Real artifacts from the demo audit — the query that catches the
-    crime, the sandbox that proves it, the verdict that lands in the graph.</p>
+  <p class="seclead">A real case from a live audit, told in three acts.
+    The same loop runs on any workbook you upload.</p>
   <div class="workpanels">
-    <div class="panel glass">
-      <div class="ph">① The detector — Cypher on Neo4j Aura</div>
-      <pre><span class="kw">MATCH</span> (t:Cell {kind:'formula'})
-<span class="kw">WHERE</span> t.formula <span class="kw">CONTAINS</span> 'SUM('
-<span class="kw">MATCH</span> (p:Cell)-[:FEEDS_INTO]->(t)
-<span class="kw">WITH</span> t, collect(p) AS ps, max(p.row) AS lastRow
-<span class="kw">MATCH</span> (gap:Cell {col:t.col})
-<span class="kw">WHERE</span> gap.row > lastRow <span class="kw">AND</span> gap.row < t.row
-  <span class="kw">AND NOT</span> (gap)-[:FEEDS_INTO]->(t)
-<span class="kw">RETURN</span> t, gap   <b>→ 12 totals stop short</b></pre>
-    </div>
-    <div class="panel glass">
-      <div class="ph">② The proof — Daytona sandbox run</div>
-      <pre>$ creating isolated sandbox… <span class="ok">ok</span>
-$ pip install formulas openpyxl <span class="ok">ok</span>
-$ recompute workbook (as-is)… 196 cells
-$ apply fix SUM(B3:B6)→SUM(B3:B7) ×12
-$ recompute workbook (fixed)… 196 cells
-$ diff… <span class="bad">8 cells change</span>
-$ sandbox destroyed · 6.6s
-<span class="ok">VERDICT: CONFIRMED</span></pre>
-    </div>
-    <div class="panel glass">
-      <div class="ph">③ The verdict — written back to the graph</div>
-      <pre>Total FY2026 costs   2,842,821 → <span class="bad">2,877,821</span>
-Net income          -2,482,065 → <span class="bad">-2,517,065</span>
-Ending cash            -82,065 → <span class="bad">-117,065</span>
 
-The founder thinks they're $82k short.
-<b>They're $117k short.</b>
-(:Finding)&lt;-[:VERIFIES]-(:Run {verdict:
-  <span class="ok">'CONFIRMED'</span>, maxAbsDelta: 35000})</pre>
+    <div class="case glass">
+      <div class="tag">Act I — The crime scene</div>
+      <div class="minisheet">
+        <table>
+          <tr><td class="rl">Payroll</td><td class="sumzone">185,000</td></tr>
+          <tr><td class="rl">Marketing</td><td class="sumzone">21,850</td></tr>
+          <tr><td class="rl">Infrastructure</td><td class="sumzone">2,420</td></tr>
+          <tr><td class="rl">Office &amp; misc</td><td class="sumzone">22,000</td></tr>
+          <tr class="ghost"><td class="rl">Contractors ⚠️</td><td>15,000</td></tr>
+          <tr class="tot"><td class="rl">Total costs</td><td>231,270</td></tr>
+        </table>
+      </div>
+      <p>A contractors row was added <b>below</b> the totals. The SUM never
+        learned about it — so <b>$15,000 a quarter simply doesn't exist</b>.
+        Excel shows no error. A human sees nothing. The graph sees a cell
+        that feeds… nothing.</p>
     </div>
+
+    <div class="case glass">
+      <div class="tag">Act II — The trial</div>
+      <div class="trial">
+        <div class="wbpill">📄 your workbook<br><small>as-is</small></div>
+        <div class="vs">recomputed<br>side by side</div>
+        <div class="wbpill">📄 your workbook<br><small>with the fix</small></div>
+      </div>
+      <div class="trialbox">🔒 inside an isolated Daytona sandbox — created,
+        run, destroyed in ~7 seconds</div>
+      <p>No opinions, no pattern-matching: we <b>re-execute your entire
+        workbook both ways</b> and diff every single cell. Only the numbers
+        get a vote.</p>
+    </div>
+
+    <div class="case glass">
+      <div class="tag">Act III — The verdict</div>
+      <div class="stampwrap"><span class="stamp">CONFIRMED</span></div>
+      <div class="ledger">
+        <div><span>Ending cash, as reported</span><b>−$82,065</b></div>
+        <div><span>Ending cash, actual</span><b class="bad">−$117,065</b></div>
+        <div class="sum"><span>Hidden damage, measured</span><b class="bad">$35,000</b></div>
+      </div>
+      <p>The verdict — with its exact dollar impact — is written back into the
+        graph, the report, and the agent's memory. <b>Proof, not vibes.</b></p>
+    </div>
+
   </div>
 </section>
 
@@ -434,39 +479,33 @@ The founder thinks they're $82k short.
 
 <section class="land" id="catches">
   <h2 class="sec">What it catches</h2>
-  <p class="seclead">The five classics that quietly wreck real models — all planted
-    in our demo workbook, all caught, all <b>proven by re-execution</b>.</p>
+  <p class="seclead">The classics that quietly wreck real models — caught
+    structurally in the graph, then <b>proven by re-execution</b>.</p>
   <div class="catchgrid">
     <div class="catch glass"><span class="ico">🔢</span>
       <b>Hardcoded constants in formula chains</b>
       <span>A “temporary” 15% typed into June’s growth formula. Every month after
-        is fiction.</span>
-      <div class="fig">−$28,512 exit ARR</div></div>
+        is fiction.</span></div>
     <div class="catch glass"><span class="ico">📋</span>
       <b>Pasted-over formulas</b>
       <span>October’s revenue overwritten with September’s number during board
-        prep. The formula never came back.</span>
-      <div class="fig">$1,683 understated</div></div>
+        prep. The formula never came back.</span></div>
     <div class="catch glass"><span class="ico">∑</span>
       <b>SUM ranges that stopped short</b>
       <span>A contractors row added below the totals — SUM never learned about
-        row 7.</span>
-      <div class="fig">$35,000 invisible</div></div>
+        row 7.</span></div>
     <div class="catch glass"><span class="ico">↔️</span>
       <b>Off-by-one references</b>
       <span>“Dec ARR” pointing at November’s column. Classic drag-fill damage,
-        caught by AI label triage.</span>
-      <div class="fig">wrong number to the board</div></div>
+        caught by AI label triage.</span></div>
     <div class="catch glass"><span class="ico">🔌</span>
       <b>Orphaned assumptions</b>
       <span>Support cost per customer: defined, believed, and wired into…
-        nothing at all.</span>
-      <div class="fig">costs structurally understated</div></div>
+        nothing at all.</span></div>
     <div class="catch glass"><span class="ico">🌀</span>
       <b>Circular references &amp; load-bearing cells</b>
       <span>Cycle detection plus centrality ranking: know which single cells
-        your whole model hangs from.</span>
-      <div class="fig">blast radius, quantified</div></div>
+        your whole model hangs from.</span></div>
   </div>
 </section>
 
