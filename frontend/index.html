@@ -126,6 +126,46 @@
     background:rgba(255,255,255,.35);backdrop-filter:blur(8px)}
   footer a{color:var(--ink2)}
 
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+  .metric{border-radius:var(--r);padding:22px 18px;text-align:center}
+  .metric .v{font-family:ui-serif,Georgia,serif;font-size:36px;font-weight:700;
+    letter-spacing:-.02em}
+  .metric .v em{font-style:normal;color:var(--coral-deep)}
+  .metric .l{font-size:12.5px;color:var(--ink3);margin-top:3px}
+
+  .workpanels{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+  .panel{border-radius:var(--r);overflow:hidden;padding:0}
+  .panel .ph{padding:11px 17px;font-size:11px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink3);font-weight:700;
+    border-bottom:1px solid var(--hairline)}
+  .panel pre{margin:0;padding:15px 17px;font-family:ui-monospace,Menlo,monospace;
+    font-size:11.8px;line-height:1.7;overflow-x:auto;color:var(--ink2)}
+  .panel pre b{color:var(--coral-deep);font-weight:650}
+  .panel pre .ok{color:var(--t-green);font-weight:700}
+  .panel pre .bad{color:var(--t-red);font-weight:700}
+  .panel pre .kw{color:var(--t-blue);font-weight:600}
+
+  .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+  .pillar{border-radius:var(--r);padding:24px 24px 26px}
+  .pillar .ico{font-size:27px}
+  .pillar b{display:block;font-size:18px;margin:11px 0 7px;
+    font-family:ui-serif,Georgia,serif;letter-spacing:-.01em}
+  .pillar span{font-size:14px;color:var(--ink2)}
+
+  .problems{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+  .problem{border-radius:var(--r);padding:19px 21px;font-size:13.5px;color:var(--ink2)}
+  .problem b{color:var(--ink);font-family:ui-serif,Georgia,serif;font-size:17px;
+    display:block;margin-bottom:6px;letter-spacing:-.01em}
+
+  #closing{text-align:center;padding:76px 24px 8px}
+  #closing h2{font-family:ui-serif,Georgia,serif;
+    font-size:clamp(28px,4.4vw,46px);letter-spacing:-.02em;margin:0 0 22px;
+    font-weight:600}
+  #closing h2 em{font-style:italic;color:var(--coral-deep)}
+
+  @media (max-width:960px){.metrics{grid-template-columns:repeat(2,1fr)}
+    .workpanels,.pillars,.problems{grid-template-columns:1fr}}
+
   /* ---------- app (single-page dashboard) ---------- */
   #app{display:none;padding:18px 24px 40px;max-width:1560px;margin:0 auto}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
@@ -292,6 +332,101 @@
   </div>
 </section>
 
+<section class="land" id="metrics">
+  <div class="metrics">
+    <div class="metric glass"><div class="v"><em>$35,000</em></div>
+      <div class="l">of spending invisible to the demo model's totals — found &amp; proven</div></div>
+    <div class="metric glass"><div class="v">52 cells</div>
+      <div class="l">blast radius traced from one hardcoded constant, in one query</div></div>
+    <div class="metric glass"><div class="v">5/5 · 0</div>
+      <div class="l">planted errors caught · false positives</div></div>
+    <div class="metric glass"><div class="v">~7s</div>
+      <div class="l">per verdict: fresh sandbox, full recompute, measured diff</div></div>
+  </div>
+</section>
+
+<section class="land" id="see">
+  <h2 class="sec">Watch it work</h2>
+  <p class="seclead">Real artifacts from the demo audit — the query that catches the
+    crime, the sandbox that proves it, the verdict that lands in the graph.</p>
+  <div class="workpanels">
+    <div class="panel glass">
+      <div class="ph">① The detector — Cypher on Neo4j Aura</div>
+      <pre><span class="kw">MATCH</span> (t:Cell {kind:'formula'})
+<span class="kw">WHERE</span> t.formula <span class="kw">CONTAINS</span> 'SUM('
+<span class="kw">MATCH</span> (p:Cell)-[:FEEDS_INTO]->(t)
+<span class="kw">WITH</span> t, collect(p) AS ps, max(p.row) AS lastRow
+<span class="kw">MATCH</span> (gap:Cell {col:t.col})
+<span class="kw">WHERE</span> gap.row > lastRow <span class="kw">AND</span> gap.row < t.row
+  <span class="kw">AND NOT</span> (gap)-[:FEEDS_INTO]->(t)
+<span class="kw">RETURN</span> t, gap   <b>→ 12 totals stop short</b></pre>
+    </div>
+    <div class="panel glass">
+      <div class="ph">② The proof — Daytona sandbox run</div>
+      <pre>$ creating isolated sandbox… <span class="ok">ok</span>
+$ pip install formulas openpyxl <span class="ok">ok</span>
+$ recompute workbook (as-is)… 196 cells
+$ apply fix SUM(B3:B6)→SUM(B3:B7) ×12
+$ recompute workbook (fixed)… 196 cells
+$ diff… <span class="bad">8 cells change</span>
+$ sandbox destroyed · 6.6s
+<span class="ok">VERDICT: CONFIRMED</span></pre>
+    </div>
+    <div class="panel glass">
+      <div class="ph">③ The verdict — written back to the graph</div>
+      <pre>Total FY2026 costs   2,842,821 → <span class="bad">2,877,821</span>
+Net income          -2,482,065 → <span class="bad">-2,517,065</span>
+Ending cash            -82,065 → <span class="bad">-117,065</span>
+
+The founder thinks they're $82k short.
+<b>They're $117k short.</b>
+(:Finding)&lt;-[:VERIFIES]-(:Run {verdict:
+  <span class="ok">'CONFIRMED'</span>, maxAbsDelta: 35000})</pre>
+    </div>
+  </div>
+</section>
+
+<section class="land" id="pillars-sec">
+  <h2 class="sec">Why it's different</h2>
+  <p class="seclead">Spreadsheet linters flag patterns and stop.
+    SheetSleuth closes the loop.</p>
+  <div class="pillars">
+    <div class="pillar glass"><span class="ico">🕸</span>
+      <b>It sees the wiring</b>
+      <span>A workbook is thousands of invisible "this feeds that" wires. We
+        rebuild them as a Neo4j graph, so questions like "what depends on this
+        cell?" become one traversal — not an afternoon of clicking Trace
+        Precedents.</span></div>
+    <div class="pillar glass"><span class="ico">🧪</span>
+      <b>It proves, not lints</b>
+      <span>Every suspect gets executed: a fresh Daytona sandbox recomputes your
+        entire workbook with and without the fix and measures exactly which
+        numbers change, in dollars. Verdicts, not vibes.</span></div>
+    <div class="pillar glass"><span class="ico">🧠</span>
+      <b>It answers with receipts</b>
+      <span>Ask "what if payroll rises 10%?" — the cloud agent won't guess. It
+        runs the scenario, cites the measured before/after, and remembers your
+        past audits with long-term memory.</span></div>
+  </div>
+</section>
+
+<section class="land" id="why">
+  <h2 class="sec">This problem is expensive</h2>
+  <p class="seclead">Spreadsheets run the world's decisions, and the research says
+    they're quietly wrong.</p>
+  <div class="problems">
+    <div class="problem glass"><b>~90% error rate</b>
+      Field audits (Panko et&nbsp;al.) consistently find errors in roughly nine
+      out of ten large spreadsheets in production use.</div>
+    <div class="problem glass"><b>$6,000,000,000</b>
+      JPMorgan's "London Whale" loss was amplified by an Excel model with a
+      copy-paste error in its risk calculation.</div>
+    <div class="problem glass"><b>16,000 lost cases</b>
+      The UK's COVID contact-tracing pipeline silently dropped thousands of
+      positive cases to an Excel row limit.</div>
+  </div>
+</section>
+
 <section class="land" id="catches">
   <h2 class="sec">What it catches</h2>
   <p class="seclead">The five classics that quietly wreck real models — all planted
@@ -365,6 +500,14 @@
       prove every verdict</span></div>
     <div class="stackcard glass"><b>Cognee</b><span>long-term memory across
       audits</span></div>
+  </div>
+</section>
+
+<section id="closing">
+  <h2>Stop trusting your spreadsheet.<br><em>Start proving it.</em></h2>
+  <div class="cta">
+    <button class="primary" onclick="loadDemo()">▶ Audit the demo model</button>
+    <button onclick="document.getElementById('file').click()">Upload your .xlsx</button>
   </div>
 </section>
 
