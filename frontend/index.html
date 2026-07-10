@@ -443,31 +443,45 @@ async function ingest(promise){
 /* ---------- graph ---------- */
 async function drawGraph(){
   const g = await api(`/api/workbooks/${S.wb}/graph`);
+  // circuit-board layout: one quadrant per sheet, cells at their true
+  // row/col positions, no physics = rock-solid, spreadsheet-shaped.
+  const CW=64, RH=38, QW=1120, QH=640;
   const sheets=[...new Set(g.nodes.map(n=>n.cell.sheet))];
-  const nodes = g.nodes.map(n=>{
-    const c=n.cell, f=n.finding;
-    let color="#8b949e", size=8, font={color:"#5c6a82",size:9};
-    if(c.kind==="formula"){ color="#3b82f6"; size=10; }
-    if(c.kind==="text"){ color="#232c40"; size=5; }
-    if(f){ color = f.status==="CONFIRMED" ? "#ef4444" : "#d97706";
-           size=19; font={color:"#ffd9a8",size:13}; }
-    const si=sheets.indexOf(c.sheet);
-    return { id:c.id, label:c.sheet+"!"+c.address,
-      color:{background:color,border:"#0b0f17"}, size, shape:"dot", font,
-      x:(si%2)*920+(c.col*60), y:Math.floor(si/2)*740+(c.row*46),
-      title:c.formula||c.value||"", _cell:c, _finding:f };
-  });
+  const qpos = s => { const i=sheets.indexOf(s);
+    return {qx:(i%2)*QW, qy:Math.floor(i/2)*QH}; };
+
+  const nodes = g.nodes
+    .filter(n => n.cell.kind !== "text")     // labels aren't wiring
+    .map(n=>{
+      const c=n.cell, f=n.finding, {qx,qy}=qpos(c.sheet);
+      let color="#8b949e", size=8, font={color:"transparent",size:1};
+      if(c.kind==="formula"){ color="#3b82f6"; size=10; }
+      if(f){ color = f.status==="CONFIRMED" ? "#ef4444" : "#d97706";
+             size=19; font={color:"#ffd9a8",size:13,vadjust:-2}; }
+      return { id:c.id, label:f?c.sheet+"!"+c.address:c.address,
+        color:{background:color,border:"#0b0f17"}, size, shape:"dot", font,
+        x:qx+c.col*CW, y:qy+c.row*RH,
+        title:(c.sheet+"!"+c.address+"  "+(c.formula||c.value||"")).trim(),
+        _cell:c, _finding:f };
+    });
+
+  // sheet name plates above each quadrant
+  sheets.forEach(s=>{ const {qx,qy}=qpos(s);
+    nodes.push({ id:"__sheet__"+s, label:s.toUpperCase(), shape:"text",
+      font:{color:"#5c6a82",size:18,face:"ui-monospace, Menlo",bold:{}},
+      x:qx+2*CW, y:qy-14, physics:false, chosen:false }); });
+
   const edges = g.edges.map(e=>({from:e.src,to:e.dst,
     arrows:{to:{enabled:true,scaleFactor:.3}},
-    color:{color:"#26314b",opacity:.75},width:1,smooth:{type:"continuous"}}));
+    color:{color:"#26314b",opacity:.8},width:1,
+    smooth:{type:"cubicBezier",roundness:.35}}));
+
   S.nodes=new vis.DataSet(nodes); S.edges=new vis.DataSet(edges);
   S.net = new vis.Network($("net"),{nodes:S.nodes,edges:S.edges},
-    {physics:{barnesHut:{gravitationalConstant:-2400,springLength:65,
-      avoidOverlap:.35},stabilization:{iterations:130}},
-     interaction:{hover:true,tooltipDelay:120}});
-  S.net.once("stabilizationIterationsDone",()=>S.net.fit({animation:true}));
-  S.net.on("click", p=>{ if(p.nodes.length) inspect(p.nodes[0]); });
-  S.net.on("doubleClick", p=>{ if(p.nodes.length) blast(p.nodes[0]); });
+    {physics:false, interaction:{hover:true,tooltipDelay:120}});
+  S.net.fit({animation:false});
+  S.net.on("click", p=>{ if(p.nodes.length && !String(p.nodes[0]).startsWith("__sheet__")) inspect(p.nodes[0]); });
+  S.net.on("doubleClick", p=>{ if(p.nodes.length && !String(p.nodes[0]).startsWith("__sheet__")) blast(p.nodes[0]); });
 }
 function inspect(id){
   const n=S.nodes.get(id), c=n._cell, f=n._finding;
@@ -484,6 +498,7 @@ async function blast(id){
   const br = await api(`/api/workbooks/${S.wb}/blast/${sheet}/${address}`);
   const hit=new Set(br.cells.map(c=>c.cell));
   S.nodes.forEach(n=>{
+    if(String(n.id).startsWith("__sheet__")) return;
     if(n.id===id) S.nodes.update({id:n.id,color:{background:"#ef4444"},size:21});
     else if(hit.has(n.id)) S.nodes.update({id:n.id,color:{background:"#f59e0b"},size:12});
     else S.nodes.update({id:n.id,color:{background:"#1c2434"}});
