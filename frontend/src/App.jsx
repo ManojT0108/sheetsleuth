@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { api, BB_API, APP_ID, PRODUCT_ID, fmt$ } from "./lib/api.js";
+import { api, BACKEND, PRODUCT_ID, fmt$ } from "./lib/api.js";
 import Landing from "./components/Landing.jsx";
 import GraphPanel from "./components/GraphPanel.jsx";
 import Evidence from "./components/Evidence.jsx";
@@ -50,7 +50,7 @@ export default function App() {
     const password = document.getElementById("a-pass").value;
     try {
       if (mode === "signup") {
-        const r = await fetch(`${BB_API}/auth/${APP_ID}/signup`, {
+        const r = await fetch(`${BACKEND}/api/auth/signup`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         });
@@ -59,7 +59,7 @@ export default function App() {
           throw new Error(e.message || e.error || "signup failed");
         }
       }
-      const r = await fetch(`${BB_API}/auth/${APP_ID}/login`, {
+      const r = await fetch(`${BACKEND}/api/auth/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -89,11 +89,12 @@ export default function App() {
   async function buyReport() {
     if (!user) { dlgRef.current.showModal(); return; }
     try {
-      const r = await fetch(`${BB_API}/v1/${APP_ID}/billing/purchase`, {
+      const r = await fetch(`${BACKEND}/api/billing/purchase`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId: PRODUCT_ID,
+          access_token: token,
           successUrl: location.origin + location.pathname + "?paid=1",
           cancelUrl: location.href,
         }),

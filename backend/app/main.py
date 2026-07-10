@@ -16,6 +16,7 @@ load_dotenv(Path(__file__).parents[2] / ".env")  # before app imports read env
 
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .audit import fixes as fx
@@ -155,6 +156,33 @@ def ask(wb: str, body: dict):
     """Agent Q&A — routed through the RocketRide Cloud pipeline."""
     from .services.rocketride import ask_agent
     return ask_agent(wb, body.get("question", ""))
+
+
+@app.post("/api/auth/{action}")
+def auth_proxy(action: str, body: dict):
+    """Server-side proxy for Butterbase end-user auth (signup/login).
+    Butterbase's auth service does not answer CORS preflights, so browsers
+    can't call it directly; server-to-server has no such restriction."""
+    if action not in ("signup", "login"):
+        raise HTTPException(404, "unknown auth action")
+    import requests as rq
+
+    from .services.butterbase import APP_ID, BB_API
+    r = rq.post(f"{BB_API}/auth/{APP_ID}/{action}", json=body, timeout=30)
+    return JSONResponse(status_code=r.status_code, content=r.json())
+
+
+@app.post("/api/billing/purchase")
+def purchase_proxy(body: dict):
+    """Server-side proxy for the end-user checkout call (same CORS issue).
+    The user's Butterbase JWT is forwarded, never stored."""
+    import requests as rq
+
+    from .services.butterbase import APP_ID, BB_API
+    token = body.pop("access_token", "")
+    r = rq.post(f"{BB_API}/v1/{APP_ID}/billing/purchase", json=body,
+                headers={"Authorization": f"Bearer {token}"}, timeout=30)
+    return JSONResponse(status_code=r.status_code, content=r.json())
 
 
 @app.get("/api/health")
