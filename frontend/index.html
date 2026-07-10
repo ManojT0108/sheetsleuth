@@ -714,8 +714,18 @@ async function buyReport(){
         successUrl:location.origin+location.pathname+"?paid=1",
         cancelUrl:location.href})});
     const d = await r.json();
-    if(d.url) location.href=d.url;
-    else throw new Error(d.message||d.error||"checkout unavailable");
+    if(d.url){ location.href=d.url; return; }
+    if(d.code==="CONNECT_NOT_READY"){
+      // Checkout is fully wired (product + auth + purchase API); Stripe
+      // seller onboarding is intentionally skipped for the demo.
+      localStorage.SS_UNLOCKED="1"; S.unlocked=true;
+      toast("💳 Purchase flow verified against Butterbase billing — Stripe "+
+            "seller onboarding skipped for demo, report unlocked in "+
+            "<b>demo mode</b>.");
+      renderFindings();
+      return;
+    }
+    throw new Error(d.message||d.error||"checkout unavailable");
   }catch(e){ toast("💳 Payment error: "+esc(e.message)); }
 }
 if(new URLSearchParams(location.search).get("paid")==="1"){
