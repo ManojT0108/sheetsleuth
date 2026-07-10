@@ -9,6 +9,9 @@ import requests
 BB_API = "https://api.butterbase.ai"
 APP_ID = os.environ.get("BUTTERBASE_APP_ID", "app_x89ezf73vxrn")
 
+# rows created before a user signs in are owned by the anonymous user
+ANON_USER = "00000000-0000-0000-0000-000000000000"
+
 
 def _headers():
     return {
