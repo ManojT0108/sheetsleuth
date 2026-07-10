@@ -1,6 +1,6 @@
 """Butterbase integration: mirrors product state (workbooks, reports, asks)
 into the app's Postgres via the auto-generated REST API, and exposes the
-AI gateway for LLM calls. Frontend auth/payments hit Butterbase directly."""
+AI gateway for LLM calls. Frontend auth/payments go through backend proxies."""
 
 import os
 

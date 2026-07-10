@@ -66,6 +66,11 @@ def ask_agent(wb: str, question: str) -> dict:
     return result
 
 
+def ask_cloud(wb: str, question: str) -> dict:
+    """Cloud-only RocketRide call used by the application ask workflow."""
+    return asyncio.run(_ask_cloud(wb, question))
+
+
 def _mirror_ask(wb: str, question: str, result: dict):
     """Best-effort mirror into the Butterbase ask_history table."""
     try:

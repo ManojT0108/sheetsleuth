@@ -22,14 +22,17 @@ import pytest  # noqa: E402
 def demo_xlsx(tmp_path_factory):
     """A freshly generated demo workbook (never the repo copy, so tests can't
     corrupt the demo prop)."""
-    import subprocess
+    import importlib.util
+
     out = tmp_path_factory.mktemp("wb")
     gen = ROOT / "demo" / "make_demo_workbook.py"
-    subprocess.run([sys.executable, str(gen)], check=True, cwd=ROOT / "demo")
-    src = ROOT / "demo" / "lumeo_fy2026_model.xlsx"
-    dst = out / "lumeo.xlsx"
-    dst.write_bytes(src.read_bytes())
-    return dst
+    spec = importlib.util.spec_from_file_location("make_demo_workbook", gen)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    module.OUT_DIR = out
+    path, _ = module.build()
+    return path
 
 
 def has_neo4j() -> bool:

@@ -161,7 +161,7 @@ def _extract_json(text: str, anchor: str | None = None) -> dict | None:
         return None
 
 
-def answer(wb: str, question: str) -> dict:
+def answer(wb: str, question: str, data_dir: Path | None = None) -> dict:
     facts = _graph_facts(wb)
     try:  # Cognee long-term memory (best-effort)
         from ..services.cognee_mem import recall_sync
@@ -192,7 +192,7 @@ def answer(wb: str, question: str) -> dict:
         return {"answer": wave1, "waves": 1, "source": "agent+graph"}
 
     try:
-        wb_path = DATA_DIR / f"{wb}.xlsx"
+        wb_path = (data_dir or DATA_DIR) / f"{wb}.xlsx"
         job = build_job(wb_path, scenario.get("changes", {}))
         verdict, runner = run_sandboxed(job)
         wave2 = llm([

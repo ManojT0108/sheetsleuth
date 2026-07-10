@@ -1,8 +1,6 @@
-"""SheetSleuth API — thin HTTP layer over the audit spine.
+"""SheetSleuth FastAPI application factory."""
 
-Flow: upload workbook -> dependency graph in Neo4j -> smell detection ->
-per-finding sandbox verification -> agent Q&A (via RocketRide pipeline).
-"""
+from __future__ import annotations
 
 import hashlib
 import logging
@@ -185,15 +183,14 @@ def purchase_proxy(body: dict):
     return JSONResponse(status_code=r.status_code, content=r.json())
 
 
-@app.get("/api/health")
-def health():
-    try:
-        cypher("RETURN 1 AS ok")
-        neo4j_ok = True
-    except Exception:
-        neo4j_ok = False
-    return {"ok": True, "neo4j": neo4j_ok}
+    if settings.frontend_dist.exists():
+        app.mount(
+            "/",
+            StaticFiles(directory=settings.frontend_dist, html=True),
+            name="frontend",
+        )
 
+    return app
 
 app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True),
           name="frontend")

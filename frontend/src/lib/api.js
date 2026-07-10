@@ -5,6 +5,8 @@ export const BACKEND =
   localStorage.SS_BACKEND ||
   (location.hostname.endsWith("butterbase.dev")
     ? "https://agency-upgrade-thru-karen.trycloudflare.com"
+    : location.port === "8788"
+      ? location.origin
     : "http://localhost:8788");
 
 export const api = (path, opt = {}) =>
