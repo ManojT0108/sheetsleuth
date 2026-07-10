@@ -27,8 +27,13 @@ async def _ask_cloud(wb: str, question: str) -> dict:
     client = RocketRideClient()
     await client.connect()
     try:
-        # reuse the already-running deployed pipeline; deploy if absent
-        token = await client.get_task_token(_pipe_project_id(), "chat_1")
+        # reuse the already-running deployed pipeline; deploy if absent.
+        # The SDK raises (not None) when no task is running — treat both
+        # as "not running" so an idle-stopped pipeline self-heals.
+        try:
+            token = await client.get_task_token(_pipe_project_id(), "chat_1")
+        except Exception:
+            token = None
         attached = token is not None
         if not token:
             result = await client.use(filepath=str(PIPE_PATH))
