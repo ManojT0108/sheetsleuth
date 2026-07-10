@@ -52,6 +52,6 @@ class AskWorkflow:
             status = self.ask_history_mirror.mirror(workbook_id, question, result)
         except Exception as exc:
             status = IntegrationStatus.failed("butterbase-ask-history", exc)
-            log.warning("ask mirror failed", extra={"workbook": workbook_id}, exc_info=exc)
+            log.warning("ask mirror failed: %s", exc, extra={"workbook": workbook_id})
         result.setdefault("integrations", {})["askHistoryMirror"] = status.to_dict()
         return status

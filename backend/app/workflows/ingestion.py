@@ -61,7 +61,11 @@ class WorkbookIngestion:
             )
         except Exception as exc:
             mirror_status = IntegrationStatus.failed("butterbase-workbooks", exc)
-            log.warning("workbook mirror failed", extra={"workbook": workbook_id}, exc_info=exc)
+            log.warning(
+                "workbook mirror failed: %s",
+                exc,
+                extra={"workbook": workbook_id},
+            )
 
         return IngestResult(
             workbook=workbook_id,

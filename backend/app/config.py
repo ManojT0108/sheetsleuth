@@ -78,7 +78,7 @@ class Settings:
             neo4j_database=os.environ.get("NEO4J_DATABASE", "neo4j"),
             semantic_audit_enabled=not _bool_env("SHEETSLEUTH_SKIP_SEMANTIC", False)
             and _bool_env("SHEETSLEUTH_SEMANTIC_AUDIT", True),
-            butterbase_enabled=_bool_env("SHEETSLEUTH_BUTTERBASE_ENABLED", butterbase_key_present),
+            butterbase_enabled=_bool_env("SHEETSLEUTH_BUTTERBASE_ENABLED", False),
             butterbase_app_id=os.environ.get("BUTTERBASE_APP_ID", "app_x89ezf73vxrn"),
             daytona_enabled=_bool_env("SHEETSLEUTH_DAYTONA_ENABLED", daytona_key_present),
             rocketride_enabled=_bool_env("SHEETSLEUTH_ROCKETRIDE_ENABLED", rocketride_key_present),
