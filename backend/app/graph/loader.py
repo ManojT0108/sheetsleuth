@@ -10,6 +10,8 @@ Cell ids are globally namespaced: "<workbook>::<sheet>!<address>".
 
 from .db import run
 
+BATCH_SIZE = 1000
+
 CONSTRAINTS = [
     "CREATE CONSTRAINT cell_id IF NOT EXISTS FOR (c:Cell) REQUIRE c.id IS UNIQUE",
     "CREATE CONSTRAINT sheet_id IF NOT EXISTS FOR (s:Sheet) REQUIRE s.id IS UNIQUE",
@@ -23,17 +25,32 @@ def ensure_schema():
         run(c)
 
 
+def _chunks(items: list[dict], size: int = BATCH_SIZE):
+    for start in range(0, len(items), size):
+        yield items[start:start + size]
+
+
+def _delete_by_workbook(label: str, workbook_id: str):
+    while True:
+        result = run(
+            f"""
+            MATCH (n:{label} {{workbook:$wb}})
+            WITH n LIMIT $limit
+            DETACH DELETE n
+            RETURN count(n) AS deleted
+            """,
+            wb=workbook_id,
+            limit=BATCH_SIZE,
+        )
+        deleted = result[0]["deleted"] if result else 0
+        if deleted == 0:
+            return
+
+
 def clear_workbook(workbook_id: str):
-    run(
-        """
-        MATCH (w:Workbook {id:$wb})
-        OPTIONAL MATCH (w)-[:HAS_SHEET]->(s:Sheet)-[:CONTAINS]->(c:Cell)
-        OPTIONAL MATCH (f:Finding {workbook:$wb})
-        OPTIONAL MATCH (r:Run {workbook:$wb})
-        DETACH DELETE w, s, c, f, r
-        """,
-        wb=workbook_id,
-    )
+    for label in ("Run", "Finding", "Cell", "Sheet"):
+        _delete_by_workbook(label, workbook_id)
+    run("MATCH (w:Workbook {id:$wb}) DETACH DELETE w", wb=workbook_id)
 
 
 def load_workbook(workbook_id: str, name: str, extracted: dict):
@@ -74,25 +91,27 @@ def load_workbook(workbook_id: str, name: str, extracted: dict):
         """,
         sheets=sheets, wb=workbook_id,
     )
-    run(
-        """
-        UNWIND $nodes AS n
-        MERGE (c:Cell {id:n.id})
-        SET c.sheet=n.sheet, c.address=n.address, c.row=n.row, c.col=n.col,
-            c.kind=n.kind, c.formula=n.formula, c.value=n.value,
-            c.numValue=n.numValue, c.literals=n.literals, c.workbook=n.workbook
-        WITH c, n
-        MATCH (sh:Sheet {id:n.workbook + '::' + n.sheet})
-        MERGE (sh)-[:CONTAINS]->(c)
-        """,
-        nodes=nodes,
-    )
-    run(
-        """
-        UNWIND $edges AS e
-        MATCH (a:Cell {id:e.src}), (b:Cell {id:e.dst})
-        MERGE (a)-[:FEEDS_INTO]->(b)
-        """,
-        edges=edges,
-    )
+    for batch in _chunks(nodes):
+        run(
+            """
+            UNWIND $nodes AS n
+            MERGE (c:Cell {id:n.id})
+            SET c.sheet=n.sheet, c.address=n.address, c.row=n.row, c.col=n.col,
+                c.kind=n.kind, c.formula=n.formula, c.value=n.value,
+                c.numValue=n.numValue, c.literals=n.literals, c.workbook=n.workbook
+            WITH c, n
+            MATCH (sh:Sheet {id:n.workbook + '::' + n.sheet})
+            MERGE (sh)-[:CONTAINS]->(c)
+            """,
+            nodes=batch,
+        )
+    for batch in _chunks(edges):
+        run(
+            """
+            UNWIND $edges AS e
+            MATCH (a:Cell {id:e.src}), (b:Cell {id:e.dst})
+            MERGE (a)-[:FEEDS_INTO]->(b)
+            """,
+            edges=batch,
+        )
     return {"cells": len(nodes), "edges": len(edges), "sheets": len(sheets)}
