@@ -97,3 +97,53 @@ def test_unknown_workbook_404(client):
 
 def test_health(client):
     assert client.get("/api/health").json()["ok"] is True
+
+
+def test_auth_proxy_forwards_to_butterbase(client, monkeypatch):
+    calls = []
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"access_token": "tok", "user": {"email": "n@example.com"}}
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return FakeResponse()
+
+    monkeypatch.setattr("requests.post", fake_post)
+
+    r = client.post("/api/auth/login", json={"email": "n@example.com", "password": "pw"})
+
+    assert r.status_code == 200
+    assert r.json()["access_token"] == "tok"
+    assert calls[0][0].endswith("/auth/app_x89ezf73vxrn/login")
+    assert calls[0][1]["json"]["email"] == "n@example.com"
+
+
+def test_purchase_proxy_forwards_jwt_as_authorization(client, monkeypatch):
+    calls = []
+
+    class FakeResponse:
+        status_code = 201
+
+        def json(self):
+            return {"url": "https://checkout.example/session"}
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return FakeResponse()
+
+    monkeypatch.setattr("requests.post", fake_post)
+
+    r = client.post(
+        "/api/billing/purchase",
+        json={"productId": "prod_123", "access_token": "jwt_123"},
+    )
+
+    assert r.status_code == 201
+    assert r.json()["url"] == "https://checkout.example/session"
+    assert calls[0][0].endswith("/v1/app_x89ezf73vxrn/billing/purchase")
+    assert calls[0][1]["headers"] == {"Authorization": "Bearer jwt_123"}
+    assert calls[0][1]["json"] == {"productId": "prod_123"}
