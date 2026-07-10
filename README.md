@@ -59,6 +59,18 @@ curl http://127.0.0.1:8788/api/health
 ```
 
 `neo4j:false` means the API is running but the configured Neo4j database is not reachable.
+The backend reads `.env` at startup, so restart uvicorn after changing env values.
+
+On macOS with the python.org Python installer, `neo4j+s://` Aura connections can
+fail even when `NEO4J_URI` is set if Python's CA bundle is missing. If health
+stays at `neo4j:false` and the backend logs mention certificate verification,
+run:
+
+```bash
+/Applications/Python\ 3.12/Install\ Certificates.command
+```
+
+Then restart the backend and check `/api/health` again.
 
 ## Frontend
 

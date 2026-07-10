@@ -85,6 +85,15 @@ export default function App() {
     } else dlgRef.current.showModal();
   }
 
+  function returnHome() {
+    setWb(null);
+    setStats(null);
+    setFindings([]);
+    setGraphKey(0);
+    if (askInputRef.current) askInputRef.current.value = "";
+    window.scrollTo({ top: 0 });
+  }
+
   /* ---------- payments ---------- */
   async function buyReport() {
     if (!user) { dlgRef.current.showModal(); return; }
@@ -186,6 +195,11 @@ export default function App() {
           </nav>
         )}
         {stats && <span className="wbchip" style={{ display: "inline" }}>{stats.name}</span>}
+        {wb && (
+          <button className="ghost homebtn" onClick={returnHome} type="button">
+            ← Home
+          </button>
+        )}
         <div className="spacer" />
         {user && <span className="userchip" style={{ display: "inline" }}>👤 {user.email}</span>}
         <button className="ghost" onClick={authButton}>{user ? "Sign out" : "Sign in"}</button>
