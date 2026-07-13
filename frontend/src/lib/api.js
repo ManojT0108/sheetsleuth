@@ -4,7 +4,7 @@ export const PRODUCT_ID = "5d385dad-e200-4ca3-b897-67bc9967314e";
 export const BACKEND =
   localStorage.SS_BACKEND ||
   (location.hostname.endsWith("butterbase.dev")
-    ? "https://agency-upgrade-thru-karen.trycloudflare.com"
+    ? "https://batteries-affairs-ind-conferencing.trycloudflare.com"
     : location.port === "8788"
       ? location.origin
     : "http://localhost:8788");
